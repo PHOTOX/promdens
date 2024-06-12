@@ -545,6 +545,7 @@ if plotting:
     axs[2].set_ylabel(r"$\sigma$ (cm$^2\cdot$molecule$^{-1}$)")
     axs[2].set_title(r"Absorption spectrum")
     axs[2].legend(frameon=False, labelspacing=0.1)
+    axs[2].ticklabel_format(style='sci', axis='y', scilimits=(0, 0), useMathText=True)
     axs[2].minorticks_on()
     axs[2].tick_params('both', direction='in', which='both', top=True, right=True)
 
