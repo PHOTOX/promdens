@@ -3,6 +3,7 @@
 © Jiri Janos 2024"""
 
 # todo: energy per pulse!
+# todo: negative value handeling
 
 # importing python libraries
 import argparse
@@ -261,10 +262,7 @@ class initial_conditions:
             print(f"ERROR: Input data not read yet. Please first use 'read_input_data()'!")
             exit(1)
 
-        # attempt for an adaptive integration step according to the oscillation
-        # however, for plotting on a grid it doesn't work as the edges have dE-omega = 12 or more so I needed to add a
-        # thresh with omega. Implementing this for the sampling shouldn't be a problem because I will have only relevant
-        # excitation energies.
+        # setting an adaptive integration step according to the oscillation
         loc_omega = self.field_omega + self.field_lchirp*tprime
         if de != loc_omega:
             T = 2*np.pi/(np.min([np.abs(de - loc_omega), loc_omega]))
@@ -292,14 +290,9 @@ class initial_conditions:
         cos = np.cos((de/self.hbar - loc_omega)*s)
         integral = 2*np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
 
-        W = 1/2/np.pi/self.hbar*integral
-        if W < -1e-5:  # threshold for numerical accuracy
-            print(f"\nERROR: Negative probability encountred ({W})! This is usually the case for all pulses but 'gauss'"
-                  f" and is conected to ill-defined wigner distribution.\n")
-            exit(1)
-        return W
+        return integral/2/np.pi/self.hbar
 
-    def sample_initial_conditions(self, new_ic_nsamples):
+    def sample_initial_conditions(self, new_ic_nsamples, neg_handling):
         """
         Sample time-dependent initial condition from the excited state distribution.
         :param new_ic_nsamples: number of samples to be sampled
@@ -340,6 +333,18 @@ class initial_conditions:
 
             prob = self.tdm[rnd_state, rnd_index]**2*self.pulse_wigner(rnd_time, self.de[rnd_state, rnd_index])
 
+            # todo: negative probability handling options
+            # check and handle negative probabilities
+            if prob < 0:
+                if neg_handling == 'error':
+                    print(f"\nERROR: Negative probability encountered! Check flag 'neg_handling' for more option how to"
+                          f" handle negative probabilities. See also manual and ref XXX for more information.\n")
+                    exit(1)
+                elif neg_handling == 'ignore':
+                    continue
+                elif neg_handling == 'abs':
+                    prob = np.abs(prob)
+
             if prob > rnd_max:  # check if the probability is not higher than rnd_max
                 print(f"\n - rnd_max ({rnd_max}) is smaller than probability ({prob} for sample "
                       f"{self.traj_index[rnd_index]} on state {rnd_state}). Increasing rnd_max and reruning.")
@@ -356,6 +361,7 @@ class initial_conditions:
                 progress(i, 50, new_ic_nsamples, str='  Sampling progress: ')
 
         # saving samples within the object
+        samples = samples[:, samples[0].argsort()]  # sorting according to traj index
         self.filtered_ics = samples
 
         print(f"\n  - Success rate of random sampling: {new_ic_nsamples/nattempts*100:.5f} %")
@@ -406,15 +412,17 @@ parser.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Lin
 parser.add_argument("-f", "--fwhm", default=10.0, type=float,
                     help="Full Width Half Maximum (FWHM) parameter in fs for the pulse intentsity envelope.")
 parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the maximum of the field in fs.")
-parser.add_argument("-env", "--envelope_type", default='gauss', help="Type of field envelope. Options are 'gauss', 'lorentz', 'sech', 'sin2'.")
+parser.add_argument("-env", "--envelope_type", default='gauss', help="Type of field envelope. Options are 'gauss', 'lorentz', 'sech', 'sin', 'sin2'.")
+parser.add_argument("-neg", "--neg_handling", default='error',
+                    help="Procedures how to handle negative probabilities. Options are 'error', 'ignore', 'abs'.")
 parser.add_argument("input_file", help="Input file name.")
 
 ### entering code ###
-print(f"\n#######################################################\n"
-      f"###  Filtering initial conditions with laser pulse  ###\n"
-      f"###                 * * * * *                       ###\n"
-      f"###      version BETA       Jiri Janos 2024         ###\n"
-      f"#######################################################\n")
+print("\n#######################################################\n"
+      "###  Filtering initial conditions with laser pulse  ###\n"
+      "###                 * * * * *                       ###\n"
+      "###      version BETA       Jiri Janos 2024         ###\n"
+      "#######################################################\n")
 
 # parsing the input and creating variables from it
 print(f"* Parsing the input.")
@@ -437,6 +445,7 @@ omega = config['omega']
 lchirp = config['linear_chirp']
 t0 = config['t0']
 envelope_type = config['envelope_type']
+neg_handling = config['neg_handling']
 ftype = config['file_type']
 fname = config['input_file']
 
@@ -460,6 +469,10 @@ if not ftype in ['file']:
 
 if not envelope_type in ['gauss', 'lorentz', 'sech', 'sin', 'sin2']:
     print(f"\nERROR: {envelope_type} is not available envelope type!")
+    exit(1)
+
+if not neg_handling in ['error', 'ignore', 'abs']:
+    print(f"\nERROR: '{neg_handling}' is not an available option for handling negative probabilities!")
     exit(1)
 
 if not exists(fname):
@@ -496,7 +509,6 @@ if plotting:
     print("  - Plotting Figure 1")
     colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
     if ics.nstates > 1: colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
-    plt.rcParams["font.family"] = 'Helvetica'
     fig, axs = plt.subplots(1, 3, figsize=(12, 3.5))
     fig.suptitle("Characteristics of initial conditions (ICs) loaded")
 
@@ -585,7 +597,7 @@ if plotting:
     plt.show(block=False)
 
 # sampling
-ics.sample_initial_conditions(new_ic_nsamples=new_nsamples)
+ics.sample_initial_conditions(new_ic_nsamples=new_nsamples, neg_handling=neg_handling)
 
 if plotting:
     print("  - Plotting Figure 3")
@@ -657,4 +669,4 @@ print("                                         \n"
       "                %%%%%%%%%% %%%%%%        \n"
       "                 %%%%%%%%%%%%%%%         \n"
       "                %%%%%%%%%%%%%%           \n"
-      "                                      ")
+      "                                           ")
