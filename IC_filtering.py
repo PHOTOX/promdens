@@ -3,11 +3,11 @@
 © Jiri Janos 2024"""
 
 # todo: energy per pulse!
-# todo: negative value handeling
 
 # importing python libraries
 import argparse
 from os.path import exists
+from timeit import default_timer as timer
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -288,11 +288,11 @@ class initial_conditions:
         # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
         s = np.arange(0, factor*self.field_fwhm, step=ds)
         cos = np.cos((de/self.hbar - loc_omega)*s)
-        integral = 2*np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
+        integral = np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
 
-        return integral/2/np.pi/self.hbar
+        return integral/np.pi/self.hbar
 
-    def sample_initial_conditions(self, new_ic_nsamples, neg_handling):
+    def sample_initial_conditions(self, new_ic_nsamples, neg_handling, preselect):
         """
         Sample time-dependent initial condition from the excited state distribution.
         :param new_ic_nsamples: number of samples to be sampled
@@ -320,7 +320,17 @@ class initial_conditions:
         # setting maximum random number generated during sampling
         rnd_max = np.max(self.tdm**2)*self.pulse_wigner(t0, de=omega + lchirp*t0)*1.01
 
-        i, nattempts = 0, 0  # i: loop index; nattempts: to calculate efficiency of the sampling
+        # preselection of initial conditions based on pulse spectrum in order to avoid long calculation of the Wigner
+        # distribution for samples far from resonance (the more out of resonance with the field, the more the integrand
+        # oscillates and the finer grid is needed, although the result is zero)
+        # True - sample will be skipped; False - sample will be calculated
+        if preselect:
+            preselected = np.interp(x=self.de, xp=self.field_ft_omega, fp=self.field_ft) < 1e-6  # considering field_ft is normalized and positive
+            print(f"  - Discarding {np.sum(preselected):d} samples that are not within the pulse spectrum [sigma(dE) < 10^-6].")
+        else:
+            preselected = np.zeros(shape=(self.nstates, self.nsamples), dtype=bool)
+
+        i, nattempts, start = 0, 0, timer()  # i: loop index; nattempts: to calculate efficiency of the sampling; start: time t0
         while i < new_ic_nsamples:  # while loop is used because in case we need to restart it with higher rnd_max
             nattempts += 1
 
@@ -329,16 +339,20 @@ class initial_conditions:
             rnd_time = np.random.uniform(low=self.tmin, high=self.tmax)
             rnd_state = np.random.randint(low=0, high=self.nstates, dtype=int)
 
+            # checking if the sample was preselected for discarding
+            if preselected[rnd_state, rnd_index]:
+                continue
+
             rnd = np.random.uniform(low=0, high=rnd_max)  # random number to be compared with Wig. dist.
 
             prob = self.tdm[rnd_state, rnd_index]**2*self.pulse_wigner(rnd_time, self.de[rnd_state, rnd_index])
 
-            # todo: negative probability handling options
             # check and handle negative probabilities
-            if prob < 0:
+            if prob < -1e-12*rnd_max:  # check negative value bigger than integration precision
                 if neg_handling == 'error':
-                    print(f"\nERROR: Negative probability encountered! Check flag 'neg_handling' for more option how to"
-                          f" handle negative probabilities. See also manual and ref XXX for more information.\n")
+                    print(f"\nERROR: Negative probability ({prob/rnd_max*100:.1e}%) encountered! Check flag 'neg_handling' "
+                          f"for more option how to handle negative probabilities. See also manual and ref XXX for more "
+                          f"information.\n")
                     exit(1)
                 elif neg_handling == 'ignore':
                     continue
@@ -358,13 +372,13 @@ class initial_conditions:
                 samples[3, i] = self.de[rnd_state, rnd_index]
                 samples[4, i] = self.tdm[rnd_state, rnd_index]
                 i += 1
-                progress(i, 50, new_ic_nsamples, str='  Sampling progress: ')
+                progress(i, 50, new_ic_nsamples, str='  - Sampling progress: ')
 
         # saving samples within the object
         samples = samples[:, samples[0].argsort()]  # sorting according to traj index
         self.filtered_ics = samples
 
-        print(f"\n  - Success rate of random sampling: {new_ic_nsamples/nattempts*100:.5f} %")
+        print(f"\n  - Time: {timer() - start:.3f} s\n  - Success rate of random sampling: {new_ic_nsamples/nattempts*100:.5f}%")
 
         # getting unique initial conditions for each excited state
         unique_states, unique = np.zeros(shape=(self.nstates), dtype=int), []
@@ -415,6 +429,11 @@ parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the ma
 parser.add_argument("-env", "--envelope_type", default='gauss', help="Type of field envelope. Options are 'gauss', 'lorentz', 'sech', 'sin', 'sin2'.")
 parser.add_argument("-neg", "--neg_handling", default='error',
                     help="Procedures how to handle negative probabilities. Options are 'error', 'ignore', 'abs'.")
+parser.add_argument("-ps", "--preselect", action="store_true",
+                    help="Preselect samples within pulse spectrum for sampling. This option provides significant speed "
+                         "up if the pulse spectrum covers only small part of the absorption spectrum as it avoids expensive "
+                         "calculation of W for non-resonant cases. The lost of accuracy should be minimal, yet we still "
+                         "recommend to use this option only if the calculation is too expensive, e.g. for very long pulses.")
 parser.add_argument("input_file", help="Input file name.")
 
 ### entering code ###
@@ -446,6 +465,7 @@ lchirp = config['linear_chirp']
 t0 = config['t0']
 envelope_type = config['envelope_type']
 neg_handling = config['neg_handling']
+preselect = config['preselect']
 ftype = config['file_type']
 fname = config['input_file']
 
@@ -597,7 +617,7 @@ if plotting:
     plt.show(block=False)
 
 # sampling
-ics.sample_initial_conditions(new_ic_nsamples=new_nsamples, neg_handling=neg_handling)
+ics.sample_initial_conditions(new_ic_nsamples=new_nsamples, neg_handling=neg_handling, preselect=preselect)
 
 if plotting:
     print("  - Plotting Figure 3")
