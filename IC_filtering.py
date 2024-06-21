@@ -3,6 +3,7 @@
 © Jiri Janos 2024"""
 
 # todo: energy per pulse!
+# todo: implement test of the Maxwell pulse (int E dt = 0)
 
 # importing python libraries
 import argparse
@@ -589,7 +590,7 @@ if plotting:
     axs[0].fill_between(ics.field_t/ics.fstoau, ics.field_envelope, -ics.field_envelope, color=colors[0], label='Envelope', alpha=0.2)
     axs[0].set_xlim(np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau))
     axs[0].set_ylim(np.min(-ics.field_envelope)*1.2, np.max(ics.field_envelope)*1.2)
-    axs[0].set_xlabel(r"$t$ (fs)")
+    axs[0].set_xlabel(r"Time (fs)")
     axs[0].set_ylabel(r"$\vec{E}$")
     axs[0].set_title(r"Laser pulse field")
     axs[0].legend(frameon=False, labelspacing=0.1, loc='upper left')
@@ -644,21 +645,17 @@ if plotting:
         axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
 
     ax_histy = fig.add_axes(rect_histy, sharey=axs)
-    ax_histy.plot(ics.field, ics.field_t/ics.fstoau, color=colors[0], linewidth=0.5, label='Field')
-    ax_histy.plot(ics.field_envelope, ics.field_t/ics.fstoau, color=colors[0], alpha=0.4)
-    ax_histy.plot(-ics.field_envelope, ics.field_t/ics.fstoau, color=colors[0], alpha=0.4)
-    ax_histy.fill_betweenx(ics.field_t/ics.fstoau, ics.field_envelope, -ics.field_envelope, color=colors[0], label='Envelope', alpha=0.2)
-    ax_histy.set_xlim(np.min(-ics.field_envelope)*1.2, np.max(ics.field_envelope)*1.2)
-    ax_histy.set_xlabel(r"$\vec{E}$")
-    ax_histy.legend(frameon=True, framealpha=0.9, labelspacing=0.1)
+    ax_histy.plot(ics.field_envelope**2, ics.field_t/ics.fstoau, color=colors[0], label="Pulse \nintensity")
+    ax_histy.fill_betweenx(ics.field_t/ics.fstoau, ics.field_envelope**2, 0, color=colors[0], alpha=0.2)
+    ax_histy.set_xlim(0, 1.2)
+    ax_histy.legend(frameon=True, framealpha=0.9, labelspacing=0.1, edgecolor='white')
 
     ax_histx = fig.add_axes(rect_histx, sharex=axs)
     ax_histx.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], label='Absorption spectrum')
     ax_histx.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], alpha=0.2)
-    ax_histx.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
-    ax_histx.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
+    ax_histx.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color=colors[0], label='Pulse spec. intensity')
+    ax_histx.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft**2, color=colors[0], alpha=0.2)
     ax_histx.set_ylim(0, 1.2)
-    ax_histx.set_ylabel(r"$\epsilon$")
     ax_histx.legend(frameon=False, labelspacing=0.1)
 
     ax_histx.tick_params("both", which='both', direction='in', labelbottom=False)
@@ -666,7 +663,7 @@ if plotting:
     ax_histy.set_xticks([])
     ax_histx.set_yticks([])
     axs.set_xlabel(r"$\Delta E$ (eV)")
-    axs.set_ylabel(r"$t$ (fs)")
+    axs.set_ylabel(r"Time (fs)")
     axs.minorticks_on()
     axs.tick_params("both", which='both', direction='in', top=True, right=True, color='white')
 
