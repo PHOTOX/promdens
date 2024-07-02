@@ -2,9 +2,6 @@
 
 © Jiri Janos 2024"""
 
-# todo: energy per pulse!
-# todo: implement test of the Maxwell pulse (int E dt = 0)
-
 # importing python libraries
 import argparse
 from os.path import exists
@@ -50,6 +47,7 @@ class initial_conditions:
         self.units_converted = False
         self.spectrum_calculated = False
         self.field_calculated = False
+        self.maxwell_fulfilled = False
 
     def read_input_data(self, fname='ics.dat'):
         """
@@ -248,6 +246,21 @@ class initial_conditions:
         self.field_ft = np.abs(np.fft.rfft(field))  # FT
         self.field_ft /= np.max(self.field_ft)  # normalizing
         self.field_ft_omega = 2*np.pi*np.fft.rfftfreq(len(t_ft), dt)
+
+        # checking pulse fulfils Maxwell's equations (integral from -infinity to infinity of E(t) = 0)
+        if self.field_ft_omega[0] == 0:  # the integral is equal to spectrum at zero frequency
+            integral = self.field_ft[0]
+        else:  # in case the first element is not zero frequency (which should not be at current version of python)
+            integral = self.field_ft[self.field_ft_omega == 0]
+
+        if integral > 0.01:  # empirical threshold which considers the spectrum has maximum equal to 1
+            print(f"  - WARNING: Pulse is too short and integral of E(t) is not equal to 0 - Maxwell's equations are "
+                  f"not fulfilled. This means that representation of pulse as envelope times cos(wt) is not physical. "
+                  f"See the original reference for more details.")
+            self.maxwell_fulfilled = False
+        else:
+            print(f"  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
+            self.maxwell_fulfilled = True
 
         self.field_calculated = True
 
@@ -617,11 +630,36 @@ if plotting:
     plt.savefig('field', dpi=300)
     plt.show(block=False)
 
+    # In case the pulse does not fulfil Maxwell's equations, plot the whole pulse spectrum and explain.
+    if not ics.maxwell_fulfilled:
+        print("  - Plotting Figure 3")
+        fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
+        fig.suptitle("Pulse spectrum nonzero at zero frequency!")
+        axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
+        axs.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
+        axs.axvline(0, color='black', lw=0.5)
+        axs.scatter(ics.field_ft_omega[0]/ics.evtoau, ics.field_ft[0], color='black')
+        axs.set_xlim(-0.1, ics.field_ft_omega[np.argmax(ics.field_ft)*2]/ics.evtoau)
+        axs.set_ylim(0, 1.2)
+        axs.set_xlabel(r"$E$ (eV)")
+        axs.set_ylabel(r"Pulse spectrum")
+        axs.set_title(r"$\int_{-\infty}^\infty \vec{E}(t) \mathregular{d}t = \mathcal{F}[\vec{E}(t)]|_{\omega=0} \neq 0$"
+                      f"\nViolation of Maxwell's equations!")
+        axs.minorticks_on()
+        axs.tick_params('both', direction='in', which='both', top=True, right=True)
+
+        plt.tight_layout()
+        plt.savefig('field_maxwell_violation', dpi=300)
+        plt.show(block=False)
+
 # sampling
 ics.sample_initial_conditions(new_ic_nsamples=new_nsamples, neg_handling=neg_handling, preselect=preselect)
 
 if plotting:
-    print("  - Plotting Figure 3")
+    if ics.maxwell_fulfilled:
+        print("  - Plotting Figure 3")
+    else:
+        print("  - Plotting Figure 4")
     colors = plt.cm.viridis([0.35, 0.6])
     fig = plt.figure(figsize=(6, 6))
     fig.suptitle("Excitations in time")
