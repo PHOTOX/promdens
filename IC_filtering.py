@@ -454,7 +454,7 @@ parser.add_argument("input_file", help="Input file name.")
 print("\n#######################################################\n"
       "###  Filtering initial conditions with laser pulse  ###\n"
       "###                 * * * * *                       ###\n"
-      "###      version BETA       Jiri Janos 2024         ###\n"
+      "###      version 1.0        Jiri Janos 2024         ###\n"
       "#######################################################\n")
 
 # parsing the input and creating variables from it
