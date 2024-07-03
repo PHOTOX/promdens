@@ -277,7 +277,7 @@ class initial_conditions:
             exit(1)
 
         # setting an adaptive integration step according to the oscillation
-        loc_omega = self.field_omega + self.field_lchirp*tprime
+        loc_omega = self.field_omega + 2*self.field_lchirp*tprime
         if de != loc_omega:
             T = 2*np.pi/(np.min([np.abs(de - loc_omega), loc_omega]))
         else:  # in case they are equal, I cannot divide by 0
@@ -679,7 +679,7 @@ if plotting:
     h = axs.hist2d(ics.filtered_ics[3]/ics.evtoau, ics.filtered_ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100),
                    cmap=plt.cm.viridis, density=True)
     if lchirp != 0:
-        axs.plot((omega + lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color='white', linestyle='--', label=r"$\omega(t)$")
+        axs.plot((omega + 2*lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color='white', linestyle='--', label=r"$\omega(t)$")
         axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
 
     ax_histy = fig.add_axes(rect_histy, sharey=axs)
