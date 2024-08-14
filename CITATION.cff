@@ -1,0 +1,12 @@
+cff-version: 1.0.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Janoš
+    given-names: Jiří
+    orcid: https://orcid.org/0000-0001-5903-8538
+title: "Promoted Nuclear Density Approach"
+version: 1.0.0
+identifiers:
+  - type: doi
+    value: not yet
+date-released: 2024-14-08

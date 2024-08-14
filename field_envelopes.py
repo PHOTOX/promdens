@@ -219,7 +219,7 @@ fig, axs = plt.subplots(2, len(envelope_types), figsize=(2.5*len(envelope_types)
 
 # create a 2D map
 grid = 250
-e = np.linspace(-1.5*np.pi/fwhm*fstoau, 1.5*np.pi/fwhm*fstoau, grid)
+gne = np.linspace(-1.5*np.pi/fwhm*fstoau, 1.5*np.pi/fwhm*fstoau, grid)
 t = np.linspace(-2.1*fwhm/fstoau, 2.1*fwhm/fstoau, grid)
 e2d, t2d = np.meshgrid(e, t)
 
