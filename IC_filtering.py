@@ -1,8 +1,17 @@
 """Code for filtering of initial conditions for nonadiabatic dynamics with a laser pulse.
 
-© Jiri Janos 2024"""
+© Jiri Janos 2024
+"""
 
-# importing python libraries
+
+# /// script
+# requires-python = ">=3.7"
+# dependencies = [
+#     "numpy>=1.15",
+#     "matplotlib~=3.0",
+# ]
+# ///
+
 import argparse
 from os.path import exists
 from timeit import default_timer as timer
