@@ -3,7 +3,6 @@
 © Jiri Janos 2024
 """
 
-
 # /// script
 # requires-python = ">=3.7"
 # dependencies = [
@@ -46,7 +45,7 @@ class initial_conditions:
         Initialization of the class.
         :param nsamples: number of samples considered, if set 0 then maximum number provided will be taken
         :param nstates: number of excited states considered
-        :param input_type: data read form file, other options are 'Newton-X' etc (to be done)
+        :param input_type: data read form file, other options: 'Newton-X' etc (to be done)
         """
         self.nsamples = nsamples
         self.nstates = nstates
@@ -233,7 +232,7 @@ class initial_conditions:
             print("  - E(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+lchirp*t)*t)")
             self.tmin, self.tmax = self.field_t0 - 8*self.field_fwhm, self.field_t0 + 8*self.field_fwhm
         elif self.field_envelope_type == 'sech':
-            print("  - E(t) = 1/cosh(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+lchirp*t)*t)")
+            print("  - E(t) = sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+lchirp*t)*t)")
             self.tmin, self.tmax = self.field_t0 - 4.4*self.field_fwhm, self.field_t0 + 4.4*self.field_fwhm
         elif self.field_envelope_type == 'sin':
             print("  - E(t) = sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+lchirp*t)*t) in range [t0-fwhm,t0+fwhm]")
@@ -315,14 +314,14 @@ class initial_conditions:
 
         return integral/np.pi/self.hbar
 
-    def sample_initial_conditions(self, new_ic_nsamples, neg_handling, preselect):
+    def sample_initial_conditions(self, nsamples_ic, neg_handling, preselect, seed=None):
         """
         Sample time-dependent initial condition from the excited state distribution.
-        :param new_ic_nsamples: number of samples to be sampled
+        :param nsamples_ic: number of samples to be sampled
         :return: store the new initial conditions in the class and also save output
         """
 
-        print(f"* Sampling {new_ic_nsamples:d} initial conditions considering the laser pulse.")
+        print(f"* Sampling {nsamples_ic:d} initial conditions considering the laser pulse.")
 
         if not self.input_read:
             print(f"\nERROR: Field yet not calculated. Please first use 'calc_field()'!")
@@ -338,7 +337,7 @@ class initial_conditions:
             print(f'\r{str}[', '#'*left, ' '*right, '] %d'%(percent*100/n) + '%', sep='', end='', flush=True)
 
         # variable for selected samples
-        samples = np.zeros((5, new_ic_nsamples))  # index, initial time, initial excited state, de, tdm
+        samples = np.zeros((5, nsamples_ic))  # index, initial time, initial excited state, de, tdm
 
         # setting maximum random number generated during sampling
         rnd_max = np.max(self.tdm**2)*self.pulse_wigner(t0, de=omega + lchirp*t0)*1.01
@@ -353,20 +352,24 @@ class initial_conditions:
         else:
             preselected = np.zeros(shape=(self.nstates, self.nsamples), dtype=bool)
 
+        # setting up random generator with a seed (None means random seed form OS taken)
+        rng = np.random.default_rng(seed=seed)
+
         i, nattempts, start = 0, 0, timer()  # i: loop index; nattempts: to calculate efficiency of the sampling; start: time t0
-        while i < new_ic_nsamples:  # while loop is used because in case we need to restart it with higher rnd_max
+        while i < nsamples_ic:  # while loop is used because in case we need to restart it with higher rnd_max
             nattempts += 1
 
-            # index of sample
-            rnd_index = np.random.randint(low=0, high=self.nsamples, dtype=int)
-            rnd_time = np.random.uniform(low=self.tmin, high=self.tmax)
-            rnd_state = np.random.randint(low=0, high=self.nstates, dtype=int)
+            # randomly selecting index of traj and exc. state
+            rnd_index = rng.integers(low=0, high=self.nsamples, dtype=int)
+            rnd_state = rng.integers(low=0, high=self.nstates, dtype=int)
 
             # checking if the sample was preselected for discarding
             if preselected[rnd_state, rnd_index]:
                 continue
 
-            rnd = np.random.uniform(low=0, high=rnd_max)  # random number to be compared with Wig. dist.
+            # randomly selecting excitation time and random uniform number
+            rnd_time = rng.uniform(low=self.tmin, high=self.tmax)
+            rnd = rng.uniform(low=0, high=rnd_max)  # random number to be compared with Wig. dist.
 
             prob = self.tdm[rnd_state, rnd_index]**2*self.pulse_wigner(rnd_time, self.de[rnd_state, rnd_index])
 
@@ -386,7 +389,7 @@ class initial_conditions:
                 print(f"\n - rnd_max ({rnd_max}) is smaller than probability ({prob} for sample "
                       f"{self.traj_index[rnd_index]} on state {rnd_state}). Increasing rnd_max and reruning.")
                 rnd_max *= 1.2
-                samples = np.zeros((5, new_ic_nsamples))
+                samples = np.zeros((5, nsamples_ic))
                 i = 0
             elif rnd <= prob:  # check if the point is sampled
                 samples[0, i] = self.traj_index[rnd_index]
@@ -395,13 +398,13 @@ class initial_conditions:
                 samples[3, i] = self.de[rnd_state, rnd_index]
                 samples[4, i] = self.tdm[rnd_state, rnd_index]
                 i += 1
-                progress(i, 50, new_ic_nsamples, str='  - Sampling progress: ')
+                progress(i, 50, nsamples_ic, str='  - Sampling progress: ')
 
         # saving samples within the object
         samples = samples[:, samples[0].argsort()]  # sorting according to traj index
         self.filtered_ics = samples
 
-        print(f"\n  - Time: {timer() - start:.3f} s\n  - Success rate of random sampling: {new_ic_nsamples/nattempts*100:.5f}%")
+        print(f"\n  - Time: {timer() - start:.3f} s\n  - Success rate of random sampling: {nsamples_ic/nattempts*100:.5f}%")
 
         # getting unique initial conditions for each excited state
         unique_states, unique = np.zeros(shape=(self.nstates), dtype=int), []
@@ -422,36 +425,93 @@ class initial_conditions:
                 print(f"  - State {state + 1} - {unique_states[state]} unique ICs to be propagated: \n   ", *np.array(unique[state], dtype=str))
 
         # save the selected samples
-        np.savetxt(f'IC_sampling.dat', samples.T, fmt=['%8d', '%18.8f', '%8d', '%16.8f', '%16.8f'],
-                   header=f"nsamples = {new_ic_nsamples:d}, unique nsamples = {np.sum(unique_states):d}, "
-                          f"omega = {self.field_omega:.5e} a.u., "
+        np.savetxt(f'pda.dat', samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'],
+                   header=f"Sampling: number of ics = {nsamples_ic:d}, number of unique ics = {np.sum(unique_states):d}\n"
+                          f"Field parameters: omega = {self.field_omega:.5e} a.u., "
                           f"linearchirp = {self.field_lchirp:.5e} a.u., fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
                           f"t0 = {self.field_t0/self.fstoau:.3f} fs, envelope type = '{self.field_envelope_type}'\n"
-                          f"index        time (a.u.)    el. state     de (a.u.)        tdm (a.u.)")
-        print(f"  - Output saved to file 'IC_sampling.dat'.")
+                          f"index        exc. time (a.u.)   el. state     dE (a.u.)        tdm (a.u.)")
+        print(f"  - Output saved to file 'pda.dat'.")
+
+    def windowing(self):
+        """
+        Performs Promoted Density Approach for Windowing (PDAW). The function calculates normalized weights and outputs
+        the convolution functions I(t).
+        :return: Prints analysis of windowing weights and saves all the weights to an output file.
+        """
+
+        print(f"* Generating weights and convolution for windowing.")
+
+        # determine and print convolution function
+        if self.field_envelope_type == 'gauss':
+            self.conv = "I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)"
+        elif self.field_envelope_type == 'lorentz':
+            self.conv = "I(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-2"
+        elif self.field_envelope_type == 'sech':
+            self.conv = "I(t) = sech(2*ln(1+sqrt(2))*t/fwhm)^2"
+        elif self.field_envelope_type == 'sin':
+            self.conv = "I(t) = sin(pi/2*(t-t0+fwhm)/fwhm)^2 in range [t0-fwhm,t0+fwhm]"
+        elif self.field_envelope_type == 'sin2':
+            self.conv = "I(t) = sin(pi/2*(t-t0+T)/T)^4 in range [t0-T,t0+T] where T=1.373412575*fwhm"
+        print(f"  - Convolution: '{self.conv}'\n  - Parameters:  fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
+              f"t0 = {self.field_t0/self.fstoau:.3f} fs)")
+
+        print(f"  - Calculating normalized weights:")
+        # creating a field for weigths
+        self.weights = np.zeros((self.nstates, self.nsamples))  # index, weights in different states
+
+        # generating weights for all states and samples
+        for state in range(0, self.nstates):
+            for index in range(self.nsamples):
+                # calculating weights
+                self.weights[state, index] = self.tdm[state, index]**2*np.interp(self.de[state, index], self.field_ft_omega, self.field_ft)**2
+            # normalization of weights at given state
+            self.weights[state, :] /= np.sum(self.weights[state, :])
+            # analysis
+            sorted = np.sort(self.weights[state, :])[::-1]  # sorting from largest weight to smallest
+            print(f"    > State {state + 1} analysis:\n"
+                  f"      - Largest weight: {np.max(self.weights[state, :]):.3e}\n"
+                  f"      - Number of ICs making up 90% of weights: {np.sum(np.cumsum(sorted) < 0.9) + 1:d}\n"
+                  f"      - Number of ICs with weights bigger than 0.001: {np.sum(self.weights[state, :] > 0.001):d}")
+
+        # creating a variable for printing with first column being traj indexes
+        arr_print = np.zeros((self.nstates + 1, self.nsamples))  # index, weights in different states
+        arr_print[0, :] = self.traj_index
+        arr_print[1:, :] = self.weights
+
+        np.savetxt(f'pdaw.dat', arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates,
+                   header=f"Convolution: '{self.conv}'\nParameters:  fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
+                          f"t0 = {self.field_t0/self.fstoau:.3f} fs\n"
+                          f"index        " + str(' '*8).join([f"weight S{s + 1:d}" for s in range(self.nstates)]))
+
+        print(f"  - Output saved to file 'pdaw.dat'.")
 
 
 ### setting up parser ###
 parser = argparse.ArgumentParser(description="Parser for this code", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("-m", "--method", default='pda', type=str,
+                    help="Select either Promoted density approach (PDA) to generate initial conditions with excitation times or "
+                         "PDA for windowing (PDAW) to generate weights and convolution parameters. Options: 'pda', 'pdaw'.")
 parser.add_argument("-n", "--nsamples", default=0, type=int,
                     help="Number of initial conditions considered for sampling. 0 takes all initial conditions provided in the input file.")
-parser.add_argument("-nf", "--nfsamples", default=1000, type=int, help="Number of filtered initial conditions that will be calculated.")
+parser.add_argument("-np", "--npsamples", default=1000, type=int, help="Number of promoted initial conditions to be calculated.")
 parser.add_argument("-ns", "--nstates", default=1, type=int, help="Number of excited states considered.")
-parser.add_argument("-ft", "--file_type", default='file', help="Input file type. Options are 'file'.")
+parser.add_argument("-ft", "--file_type", default='file', help="Input file type. Options: 'file'.")
 parser.add_argument("-p", "--plot", action="store_true", help="Plot along the code to see loaded data and results. Plots are saved as png images.")
-parser.add_argument("-eu", "--energy_units", default='a.u.', help="Units in which energies are provided. Options are 'a.u.', 'eV', 'nm', 'cm-1'. ")
-# "If input file type is Newton-X, defaults for Newton-X will be taken.")
+parser.add_argument("-eu", "--energy_units", default='a.u.', help="Units in which energies are provided. Options: 'a.u.', 'eV', 'nm', 'cm-1'. ")
 parser.add_argument("-tu", "--tdm_units", default='a.u.',
-                    help="Units in which transition dipole moments (|mu_ij|) are provided. Options are 'a.u.', 'debye'. "
+                    help="Units in which transition dipole moments (|mu_ij|) are provided. Options: 'a.u.', 'debye'. "
                          "If input file type is Newton-X, defaults for Newton-X will be taken.")
 parser.add_argument("-w", "--omega", default=0.1, type=float, help="Frequency of the field omega in a.u.")
 parser.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
 parser.add_argument("-f", "--fwhm", default=10.0, type=float,
                     help="Full Width Half Maximum (FWHM) parameter in fs for the pulse intentsity envelope.")
 parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the maximum of the field in fs.")
-parser.add_argument("-env", "--envelope_type", default='gauss', help="Type of field envelope. Options are 'gauss', 'lorentz', 'sech', 'sin', 'sin2'.")
+parser.add_argument("-env", "--envelope_type", default='gauss', help="Type of field envelope. Options: 'gauss', 'lorentz', 'sech', 'sin', 'sin2'.")
 parser.add_argument("-neg", "--neg_handling", default='error',
-                    help="Procedures how to handle negative probabilities. Options are 'error', 'ignore', 'abs'.")
+                    help="Procedures how to handle negative probabilities. Options: 'error', 'ignore', 'abs'.")
+parser.add_argument("-s", "--seed", default=None, type=int,
+                    help="Seed for the random number generator. Default (None) generates random seed from OS.")
 parser.add_argument("-ps", "--preselect", action="store_true",
                     help="Preselect samples within pulse spectrum for sampling. This option provides significant speed "
                          "up if the pulse spectrum covers only small part of the absorption spectrum as it avoids expensive "
@@ -476,8 +536,9 @@ for item in config:
     print(f"  - {item:20s}: {config[item]}   {add}")
 
 # storing input into variables used in the code
+method = config['method']
 nsamples = config['nsamples']
-new_nsamples = config['nfsamples']
+new_nsamples = config['npsamples']
 nstates = config['nstates']
 plotting = config['plot']
 energy_units = config['energy_units']
@@ -489,6 +550,7 @@ t0 = config['t0']
 envelope_type = config['envelope_type']
 neg_handling = config['neg_handling']
 preselect = config['preselect']
+seed = config['seed']
 ftype = config['file_type']
 fname = config['input_file']
 
@@ -498,20 +560,24 @@ t0 *= fstoau
 fwhm *= fstoau
 
 # checking input
+if not method in ['pda', 'pdaw']:
+    print(f"\nERROR: '{method}' is not available method!")
+    exit(1)
+
 if not energy_units in ['a.u.', 'eV', 'nm', 'cm-1']:
-    print(f"\nERROR: {energy_units} is not available unit for energy!")
+    print(f"\nERROR: '{energy_units}' is not available unit for energy!")
     exit(1)
 
 if not tdm_units in ['a.u.', 'debye']:
-    print(f"\nERROR: {tdm_units} is not available unit for transition dipole moment!")
+    print(f"\nERROR: '{tdm_units}' is not available unit for transition dipole moment!")
     exit(1)
 
 if not ftype in ['file']:
-    print(f"\nERROR: {ftype} is not available file type!")
+    print(f"\nERROR: '{ftype}' is not available file type!")
     exit(1)
 
 if not envelope_type in ['gauss', 'lorentz', 'sech', 'sin', 'sin2']:
-    print(f"\nERROR: {envelope_type} is not available envelope type!")
+    print(f"\nERROR: '{envelope_type}' is not available envelope type!")
     exit(1)
 
 if not neg_handling in ['error', 'ignore', 'abs']:
@@ -527,7 +593,7 @@ if nsamples < 0:
     exit(1)
 
 if new_nsamples <= 0:
-    print(f"\nERROR: nfsamples is smaller than 0 ({new_nsamples})!")
+    print(f"\nERROR: npsamples is smaller than 0 ({new_nsamples})!")
     exit(1)
 
 if nstates <= 0:
@@ -662,60 +728,63 @@ if plotting:
         plt.show(block=False)
 
 # sampling
-ics.sample_initial_conditions(new_ic_nsamples=new_nsamples, neg_handling=neg_handling, preselect=preselect)
+if method == 'pda':
+    ics.sample_initial_conditions(nsamples_ic=new_nsamples, neg_handling=neg_handling, preselect=preselect, seed=seed)
+    if plotting:
+        if ics.maxwell_fulfilled:
+            print("  - Plotting Figure 3")
+        else:
+            print("  - Plotting Figure 4")
+        colors = plt.cm.viridis([0.35, 0.6])
+        fig = plt.figure(figsize=(6, 6))
+        fig.suptitle("Excitations in time")
 
-if plotting:
-    if ics.maxwell_fulfilled:
-        print("  - Plotting Figure 3")
-    else:
-        print("  - Plotting Figure 4")
-    colors = plt.cm.viridis([0.35, 0.6])
-    fig = plt.figure(figsize=(6, 6))
-    fig.suptitle("Excitations in time")
+        # setting the other plots around the main plot
+        left, width = 0.1, 0.65
+        bottom, height = 0.1, 0.65
+        spacing = 0.00
+        rect_scatter = [left, bottom, width, height]
+        rect_histx = [left, bottom + height + spacing, width, 0.2]
+        rect_histy = [left + width + spacing, bottom, 0.2, height]
+        axs = fig.add_axes(rect_scatter)
 
-    # setting the other plots around the main plot
-    left, width = 0.1, 0.65
-    bottom, height = 0.1, 0.65
-    spacing = 0.00
-    rect_scatter = [left, bottom, width, height]
-    rect_histx = [left, bottom + height + spacing, width, 0.2]
-    rect_histy = [left + width + spacing, bottom, 0.2, height]
-    axs = fig.add_axes(rect_scatter)
+        emin, emax = np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau)
+        tmin, tmax = np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau)
 
-    emin, emax = np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau)
-    tmin, tmax = np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau)
+        h = axs.hist2d(ics.filtered_ics[3]/ics.evtoau, ics.filtered_ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100),
+                       cmap=plt.cm.viridis, density=True)
+        if lchirp != 0:
+            axs.plot((omega + 2*lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color='white', linestyle='--', label=r"$\omega(t)$")
+            axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
 
-    h = axs.hist2d(ics.filtered_ics[3]/ics.evtoau, ics.filtered_ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100),
-                   cmap=plt.cm.viridis, density=True)
-    if lchirp != 0:
-        axs.plot((omega + 2*lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color='white', linestyle='--', label=r"$\omega(t)$")
-        axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
+        ax_histy = fig.add_axes(rect_histy, sharey=axs)
+        ax_histy.plot(ics.field_envelope**2, ics.field_t/ics.fstoau, color=colors[0], label="Pulse \nintensity")
+        ax_histy.fill_betweenx(ics.field_t/ics.fstoau, ics.field_envelope**2, 0, color=colors[0], alpha=0.2)
+        ax_histy.set_xlim(0, 1.2)
+        ax_histy.legend(frameon=True, framealpha=0.9, labelspacing=0.1, edgecolor='white')
 
-    ax_histy = fig.add_axes(rect_histy, sharey=axs)
-    ax_histy.plot(ics.field_envelope**2, ics.field_t/ics.fstoau, color=colors[0], label="Pulse \nintensity")
-    ax_histy.fill_betweenx(ics.field_t/ics.fstoau, ics.field_envelope**2, 0, color=colors[0], alpha=0.2)
-    ax_histy.set_xlim(0, 1.2)
-    ax_histy.legend(frameon=True, framealpha=0.9, labelspacing=0.1, edgecolor='white')
+        ax_histx = fig.add_axes(rect_histx, sharex=axs)
+        ax_histx.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], label='Absorption spectrum')
+        ax_histx.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], alpha=0.2)
+        ax_histx.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color=colors[0], label='Pulse spec. intensity')
+        ax_histx.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft**2, color=colors[0], alpha=0.2)
+        ax_histx.set_ylim(0, 1.2)
+        ax_histx.legend(frameon=False, labelspacing=0.1)
 
-    ax_histx = fig.add_axes(rect_histx, sharex=axs)
-    ax_histx.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], label='Absorption spectrum')
-    ax_histx.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], alpha=0.2)
-    ax_histx.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color=colors[0], label='Pulse spec. intensity')
-    ax_histx.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft**2, color=colors[0], alpha=0.2)
-    ax_histx.set_ylim(0, 1.2)
-    ax_histx.legend(frameon=False, labelspacing=0.1)
+        ax_histx.tick_params("both", which='both', direction='in', labelbottom=False)
+        ax_histy.tick_params("both", which='both', direction='in', labelleft=False)
+        ax_histy.set_xticks([])
+        ax_histx.set_yticks([])
+        axs.set_xlabel(r"$\Delta E$ (eV)")
+        axs.set_ylabel(r"Time (fs)")
+        axs.minorticks_on()
+        axs.tick_params("both", which='both', direction='in', top=True, right=True, color='white')
 
-    ax_histx.tick_params("both", which='both', direction='in', labelbottom=False)
-    ax_histy.tick_params("both", which='both', direction='in', labelleft=False)
-    ax_histy.set_xticks([])
-    ax_histx.set_yticks([])
-    axs.set_xlabel(r"$\Delta E$ (eV)")
-    axs.set_ylabel(r"Time (fs)")
-    axs.minorticks_on()
-    axs.tick_params("both", which='both', direction='in', top=True, right=True, color='white')
+        plt.savefig('ic_filtering', dpi=300)
+        plt.show()
 
-    plt.savefig('ic_filtering', dpi=300)
-    plt.show()
+elif method == 'pdaw':
+    ics.windowing()
 
 print('\nFiltering of initial conditions finished.'
       '\n - "May the laser pulses be with you."\n')

@@ -1,10 +1,15 @@
-"""Plotting field envelopes available in IC_filtering.py"""
+"""Analysis of electric field envelopes available in IC_filtering.py
+
+"""
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 
 class envelopes:
+    """
+    This class contains functions copied form the main code IC_filtering.py.
+    """
     # constants in atomic units
     hbar = 1.0
 
@@ -74,7 +79,7 @@ class envelopes:
             print("  - E(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+lchirp*t)*t)")
             self.tmin, self.tmax = self.field_t0 - 8*self.field_fwhm, self.field_t0 + 8*self.field_fwhm
         elif self.field_envelope_type == 'sech':
-            print("  - E(t) = 1/cosh(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+lchirp*t)*t)")
+            print("  - E(t) = sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+lchirp*t)*t)")
             self.tmin, self.tmax = self.field_t0 - 4.4*self.field_fwhm, self.field_t0 + 4.4*self.field_fwhm
         elif self.field_envelope_type == 'sin':
             print("  - E(t) = sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+lchirp*t)*t) in range [t0-fwhm,t0+fwhm]")
@@ -219,7 +224,7 @@ fig, axs = plt.subplots(2, len(envelope_types), figsize=(2.5*len(envelope_types)
 
 # create a 2D map
 grid = 250
-gne = np.linspace(-1.5*np.pi/fwhm*fstoau, 1.5*np.pi/fwhm*fstoau, grid)
+e = np.linspace(-1.5*np.pi/fwhm*fstoau, 1.5*np.pi/fwhm*fstoau, grid)
 t = np.linspace(-2.1*fwhm/fstoau, 2.1*fwhm/fstoau, grid)
 e2d, t2d = np.meshgrid(e, t)
 
