@@ -453,7 +453,7 @@ class initial_conditions:
             self.conv = "I(t) = sin(pi/2*(t-t0+fwhm)/fwhm)^2 in range [t0-fwhm,t0+fwhm]"
         elif self.field_envelope_type == 'sin2':
             self.conv = "I(t) = sin(pi/2*(t-t0+T)/T)^4 in range [t0-T,t0+T] where T=1.373412575*fwhm"
-        print(f"  - Convolution: '{self.conv}'\n  - Parameters:  fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
+        print(f"  - Convolution: {self.conv}\n  - Parameters:  fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
               f"t0 = {self.field_t0/self.fstoau:.3f} fs)")
 
         print(f"  - Calculating normalized weights:")
@@ -465,14 +465,15 @@ class initial_conditions:
             for index in range(self.nsamples):
                 # calculating weights
                 self.weights[state, index] = self.tdm[state, index]**2*np.interp(self.de[state, index], self.field_ft_omega, self.field_ft)**2
-            # normalization of weights at given state
-            self.weights[state, :] /= np.sum(self.weights[state, :])
             # analysis
-            sorted = np.sort(self.weights[state, :])[::-1]  # sorting from largest weight to smallest
-            print(f"    > State {state + 1} analysis:\n"
+            sorted = np.sort(self.weights[state, :]/np.sum(self.weights[state, :]))[::-1]  # sorting from the largest weight to smallest
+            print(f"    > State {state + 1} -  analysis of normalized weights (weights/sum of weights on state {state + 1}):\n"
                   f"      - Largest weight: {np.max(self.weights[state, :]):.3e}\n"
-                  f"      - Number of ICs making up 90% of weights: {np.sum(np.cumsum(sorted) < 0.9) + 1:d}\n"
+                  f"      - Number of ICs making up 90% of S{state + 1} weights: {np.sum(np.cumsum(sorted) < 0.9) + 1:d}\n"
                   f"      - Number of ICs with weights bigger than 0.001: {np.sum(self.weights[state, :] > 0.001):d}")
+
+        # normalization of weights at given state
+        self.weights /= np.sum(self.weights)
 
         # creating a variable for printing with first column being traj indexes
         arr_print = np.zeros((self.nstates + 1, self.nsamples))  # index, weights in different states
@@ -484,7 +485,7 @@ class initial_conditions:
                           f"t0 = {self.field_t0/self.fstoau:.3f} fs\n"
                           f"index        " + str(' '*8).join([f"weight S{s + 1:d}" for s in range(self.nstates)]))
 
-        print(f"  - Output saved to file 'pdaw.dat'.")
+        print(f"  - Weights saved to file 'pdaw.dat'.")
 
 
 ### setting up parser ###
@@ -647,7 +648,7 @@ if plotting:
     if ics.nstates > 1:
         for state in range(ics.nstates):
             axs[2].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1], color=colors[state], linestyle='--')
-            axs[2].fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]*0, ics.spectrum[state + 1], color=colors[state], alpha=0.2)
+            axs[2].fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1], color=colors[state], alpha=0.2)
     axs[2].set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
     axs[2].set_ylim(0, np.max(ics.spectrum[-1])*1.2)
     axs[2].set_xlabel(r"$E$ (eV)")
@@ -780,14 +781,52 @@ if method == 'pda':
         axs.minorticks_on()
         axs.tick_params("both", which='both', direction='in', top=True, right=True, color='white')
 
-        plt.savefig('ic_filtering', dpi=300)
+        plt.savefig('pda', dpi=300)
         plt.show()
 
 elif method == 'pdaw':
     ics.windowing()
+    if plotting:
+        if ics.maxwell_fulfilled:
+            print("  - Plotting Figure 3")
+        else:
+            print("  - Plotting Figure 4")
+        colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
+        if ics.nstates > 1: colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
+        fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
+        fig.suptitle("Selected initial conditions and their weights")
 
-print('\nFiltering of initial conditions finished.'
-      '\n - "May the laser pulses be with you."\n')
+        axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], label='Absorption spectrum')
+        axs.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], alpha=0.2)
+
+        maxw = np.max(ics.weights)
+        if ics.nstates > 1:
+            for state in range(ics.nstates):
+                # plotting spectrum
+                axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[state], linestyle='--')
+                axs.fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[state], alpha=0.2)
+                # weights of initial conditions plotted as sticks with points
+                axs.scatter(ics.de[state, :]/ics.evtoau, ics.weights[state, :]/maxw, color=colors[state],s=5)
+                for index in range(ics.nsamples):
+                    axs.plot([ics.de[state, index]/ics.evtoau]*2, [0, ics.weights[state, index]/maxw], color=colors[state])
+
+        axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color='black', alpha=0.5, label='Pulse intensity spectrum')
+        axs.set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
+        axs.set_ylim(0, 1.3)
+        axs.set_xlabel(r"$E$ (eV)")
+        axs.set_ylabel(r"$\epsilon$")
+        axs.set_title(r"Pulse spectrum")
+        axs.legend(frameon=False, labelspacing=0.1, loc='upper left')
+        axs.minorticks_on()
+        axs.tick_params('both', direction='in', which='both', top=True, right=True)
+
+        plt.tight_layout()
+
+        plt.savefig('pdaw', dpi=300)
+        plt.show()
+
+print('\nPromoted density approached calculation finished.'
+      '\n - "May the laser pulses be with you.", ISPG\n')
 print("                                         \n"
       "       %.                                \n"
       "        %.                    #%%%%%%%%  \n"
