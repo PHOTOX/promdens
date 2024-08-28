@@ -21,13 +21,15 @@ import numpy as np
 
 ### functions and classes ###
 class InitialConditions:
-    """Class containing initial conditions. The whole code is based on this class, which
-       - reads the input file
-       - saves excitation energies and trasition dipole moment |mu_ij|
-       - calculates spectrum with NEM
-       - calculated the laser pulse and its spectrum
-       - performs a selection of initial conditions in the excited states using wigner transformation of the pulse
-       All data loaded and calculated are saved in this object. More details are provided in the functions below."""
+    """The main class around which the code is build containing all the data and functions.
+    The class:
+       - reads the input file and stores excitation energies and magnitudes of transition dipole moment |mu_ij|
+       - converts units of the inputed energies and TDMs
+       - calculates absorption spectrum with Nuclear Ensemble Method (NEA)
+       - calculates the laser pulse electric field and its spectrum
+       - creates initial conditions in the excited states based on PDA using wigner pulse envelope transformation
+       - calculates weights and convolution function for windowing based on PDAW
+    More details are provided in the functions below."""
 
     # constants in atomic units
     hbar = 1.0
@@ -43,14 +45,14 @@ class InitialConditions:
     def __init__(self, nsamples=0, nstates=1, input_type='file'):
         """
         Initialization of the class.
-        :param nsamples: number of samples considered, if set 0 then maximum number provided will be taken
-        :param nstates: number of excited states considered
-        :param input_type: data read form file, other options: 'Newton-X' etc (to be done)
+        :param nsamples: number of inputed samples (position-momentum pairs), if set 0 then maximum number provided will be taken
+        :param nstates: number of excited states considered in the calculation
+        :param input_type: input file type, currently only 'file'; possible extensions to other sampling codes
         """
         self.nsamples = nsamples
         self.nstates = nstates
         self.input_type = input_type
-        # flags that everything was calculated
+        # flags for checking that everything was calculated in the right order
         self.input_read = False
         self.units_converted = False
         self.spectrum_calculated = False
@@ -59,42 +61,41 @@ class InitialConditions:
 
     def read_input_data(self, fname='ics.dat'):
         """
-        Reading the input data: index of traj, excitation energies and transition dipole moments.
-        :param fname: file with the input data
-        :return: store all the data in the class
+        Reading the input data: index of traj, excitation energies and magnitudes of transition dipole moments.
+        :param fname: name of the input file
+        :return: store all the data within the class
         """
-        print(f"* Reading data from file '{fname}' of type '{self.input_type}'.")
+        print(f"* Reading data from file '{fname}' of input file type '{self.input_type}'.")
         if self.input_type == 'file':
             try:
-                input = np.loadtxt(fname, dtype=float).T  # reading input file
+                input = np.loadtxt(fname, dtype=float).T  # reading input file with numpy
             except FileNotFoundError as err:
-                print(f"\nERROR: File with input data '{fname}' not found!\n (Error: {err})")
+                print(f"\nERROR: Input file '{fname}' not found!\n (Error: {err})")
                 exit(1)
             except ValueError as err:
                 print(err)
-                print(f"\nERROR: Incorrect value type encountered in '{fname}!\n (Error: {err})")
+                print(f"\nERROR: Incorrect value type encountered in the input file '{fname}'!\n (Error: {err})")
                 exit(1)
             except Exception as err:
                 print(f"\nERROR: Unexpected error: {err}, type: {type(err)}")
                 exit(1)
 
-            if np.shape(input)[0] < self.nstates*2 + 1:  # check enough columns provided in the file
-                print(f"\nERROR: Not enough columns provided in file '{fname}'! "
-                      f"Expected {self.nstates*2 + 1} columns for {self.nstates} excited states.")
+            if np.shape(input)[0] < self.nstates*2 + 1:  # check enough columns provided in the file for required nstates
+                print(f"\nERROR: Not enough columns provided in the input file '{fname}'! "
+                      f"\nExpected {self.nstates*2 + 1} columns for {self.nstates} excited states.")
                 exit(1)
 
             if self.nsamples == 0:  # use all samples loaded if user input nsamples is 0
                 self.nsamples = np.shape(input)[1]
-                print(f"  - Number of ICs loaded from the input file: {self.nsamples}")
-            elif self.nsamples > np.shape(input)[1]:
-                print(f"  - Number of ICs loaded from the input file {np.shape(input)[1]} "
-                      f"instead of requested {self.nsamples}")
+                print(f"  - Number of samples loaded from the input file: {self.nsamples}")
+            elif self.nsamples > np.shape(input)[1]:  # check if requested nsamples is not larger than provided in the input
+                print(f"  - Number of samples loaded from the input file {np.shape(input)[1]} instead of requested {self.nsamples}")
                 self.nsamples = np.shape(input)[1]
 
             self.traj_index = np.array(input[0, :self.nsamples], dtype=int)  # saving indexes of trajectories
             self.de = input[1:self.nstates*2:2, :self.nsamples]  # saving excitation energies
             self.tdm = input[2:self.nstates*2 + 1:2, :self.nsamples]  # saving transition dipole moments
-        else:
+        else:  # possible extension to other input file types
             print(f"\nERROR: File type '{self.input_type}' not supported!")
             exit(1)
 
@@ -103,7 +104,8 @@ class InitialConditions:
     def convert_units(self, energy_units, tdm_units):
         """
         Converting all the data into atomic units which are used throughout the code.
-        :param energy_units: energy units of the input data
+        :param energy_units: energy units on the input
+        :param tdm_units: units of transition dipole moments on the input
         :return: store data converted to atomic units
         """
         print("* Converting units.")
@@ -116,18 +118,18 @@ class InitialConditions:
 
         if tdm_units == 'Debye':
             self.tdm *= self.debtoau
+
         self.units_converted = True
 
     def calc_spectrum(self):
         """
-        Calculating spectrum with the Nuclear Ensemble Approach. Currently, the spectrum is calculated in arbitrary
-        units. The calculated spectrum is in absorption cross-section units (cm^2*molecule^-1). Conversion to molar
-        absorption coefficient (dm^3*mol^-1*cm^-1) can be done with factor 6.022140e20 / ln(10).
+        Calculating spectrum with the Nuclear Ensemble Approach. The calculated spectrum is in absorption cross-section
+        units (cm^2*molecule^-1). Conversion factor to molar absorption coefficient (dm^3*mol^-1*cm^-1) is 6.022140e20 / ln(10).
         """
 
         def gauss(e, de, tdm, h):
             """
-            Gaussian function used in spectra calculation
+            Gaussian function used in the spectrum calculation
             :param e: energy axis (a.u.)
             :param de: excitation energy (centre of the Gaussian, a.u.)
             :param tdm: transition dipole moment (a.u.)
@@ -146,7 +148,7 @@ class InitialConditions:
             print("ERROR: Units not converted yet. Please first use 'convert_units()'!")
             exit(1)
 
-        # coefficient for intensity of the spectrum
+        # calculating coefficient for intensity of the spectrum
         eps0 = 8.854188e-12
         hbar = 6.626070e-34/(2*np.pi)
         c = 299792458
@@ -166,13 +168,14 @@ class InitialConditions:
 
             self.spectrum[state + 1] *= int_coeff/h
 
+        # calculating total spectrum (summing over all states)
         self.spectrum[-1] = np.sum(self.spectrum[1:-1], axis=0)
 
         self.spectrum_calculated = True
 
     def calc_field_envelope(self, t):
         """
-        Calculating field envelope. The parameters of the field are taken form the class.
+        Calculating field envelope. The field parameters are taken form the class (stored with 'calc_field' function).
         :param t: time axis (a.u.)
         :return: envelope of the field
         """
@@ -189,7 +192,7 @@ class InitialConditions:
                     field[k] = np.sin(np.pi/2*(t[k] - self.field_t0 + self.field_fwhm)/self.field_fwhm)
             return field
         elif self.field_envelope_type == 'sin2':
-            T = 1.373412575*self.field_fwhm
+            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4)))*self.field_fwhm
             field = np.zeros(shape=np.shape(t))
             for k in range(np.shape(t)[0]):
                 if t[k] >= self.tmin and t[k] <= self.tmax:
@@ -198,7 +201,7 @@ class InitialConditions:
 
     def field_cos(self, t):
         """
-        Calculating oscilatoin of the field with the cos function.
+        Calculating oscillations of the field with the cos function.
         :param t: time
         :return: cos((w + lchirp*t)*t)
         """
@@ -206,17 +209,17 @@ class InitialConditions:
 
     def calc_field(self, omega, fwhm, t0=0.0, lchirp=0.0, envelope_type='gauss'):
         """
-        Calculating electric field as a function of time and it spectrum with Fourier transform.
+        Calculating electric field E(t) and its spectrum E(w) with Fourier transform.
         :param omega: frequency of the field (a.u.)
-        :param fwhm: full width half maximum of the intensity envelope (a.u.)
+        :param fwhm: full width at half maximum of the intensity envelope (a.u.)
         :param t0: centre of the envelope in time (a.u.)
-        :param lchirp: linear chirp parameter w = lchirp*t + omega (a.u.)
-        :param envelope_type: envelope shape types: Gaussian, Lorentzian, sech
-        :return: store the electric field as a function of time and the pulse spectrum
+        :param lchirp: linear chirp parameter [w = lchirp*t + omega] (a.u.)
+        :param envelope_type: envelope types: Gaussian, Lorentzian, sech, sin, sin^2
+        :return: store the electric field and the pulse spectrum
         """
 
         print(f"* Calculating laser pulse field using envelope type '{envelope_type}', omega={omega:.6f} a.u.,"
-              f" fwhm={fwhm:.6f} a.u., t0={t0:.6f} a.u., lchirp={lchirp:.6f} a.u.")
+              f" fwhm={fwhm:.6f} a.u., t0={t0:.6f} a.u., lchirp={lchirp:.3e} a.u.")
         # saving field parameters in the class
         self.field_omega = omega
         self.field_lchirp = lchirp
@@ -239,7 +242,7 @@ class InitialConditions:
             self.tmin, self.tmax = self.field_t0 - self.field_fwhm, self.field_t0 + self.field_fwhm
         elif self.field_envelope_type == 'sin2':
             print("  - E(t) = sin(pi/2*(t-t0+T)/T)^2*cos((omega+lchirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm")
-            T = 1.373412575*self.field_fwhm
+            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4)))*self.field_fwhm
             self.tmin, self.tmax = self.field_t0 - T, self.field_t0 + T
 
         # calculating the field
@@ -247,18 +250,18 @@ class InitialConditions:
         self.field_envelope = self.calc_field_envelope(self.field_t)
         self.field = self.field_envelope*self.field_cos(self.field_t)
 
-        # calculating the FT of the field
+        # calculating the FT of the field (pulse spectrum)
         dt = 2*np.pi/omega/50
-        t_ft = np.arange(self.tmin - 20*self.field_fwhm, self.tmax + 20*self.field_fwhm, dt)
+        t_ft = np.arange(self.tmin - 20*self.field_fwhm, self.tmax + 20*self.field_fwhm, dt)  # setting up new time array with denser points for FT
         field = self.calc_field_envelope(t_ft)*self.field_cos(t_ft)
         self.field_ft = np.abs(np.fft.rfft(field))  # FT
-        self.field_ft /= np.max(self.field_ft)  # normalizing
+        self.field_ft /= np.max(self.field_ft)  # normalizing to have maximum at 0
         self.field_ft_omega = 2*np.pi*np.fft.rfftfreq(len(t_ft), dt)
 
-        # checking pulse fulfils Maxwell's equations (integral from -infinity to infinity of E(t) = 0)
+        # checking the pulse fulfils Maxwell's equations (integral from -infinity to infinity of E(t) = E(w=0) 0)
         if self.field_ft_omega[0] == 0:  # the integral is equal to spectrum at zero frequency
             integral = self.field_ft[0]
-        else:  # in case the first element is not zero frequency (which should not be at current version of python)
+        else:  # in case the first element is not zero frequency (which should not be at the current version of python)
             integral = self.field_ft[self.field_ft_omega == 0]
 
         if integral > 0.01:  # empirical threshold which considers the spectrum has maximum equal to 1
@@ -274,27 +277,29 @@ class InitialConditions:
 
     def pulse_wigner(self, tprime, de):
         """
-        Wigner transform of the pulse envelope as originally propposed by Martínez-Mesa and Saalfrank.
-        :param tprime: time at which the molecule is excited (a.u.)
+        Wigner transform of the pulse. The current implementation uses the pulse envelope formulation to simplify calculations.
+        The integral is calculated numerically. Analytic formulas could be implemented here.
+        :param tprime: the excitation time t' (a.u.)
         :param de: excitation energy (a.u.)
-        :return:
+        :return: Wigner pulse transform
         """
 
         if not self.field_calculated:
             print("ERROR: Input data not read yet. Please first use 'read_input_data()'!")
             exit(1)
 
-        # setting an adaptive integration step according to the oscillation
+        # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
         loc_omega = self.field_omega + 2*self.field_lchirp*tprime
         if de != loc_omega:
             T = 2*np.pi/(np.min([np.abs(de - loc_omega), loc_omega]))
-        else:  # in case they are equal, I cannot divide by 0
+        else:  # in case they are equal, there are no phase oscillations and we integrate only the envelope intensity
             T = 2*np.pi/loc_omega
-        ds = np.min([T/50, self.field_fwhm/500])
+        ds = np.min([T/50, self.field_fwhm/500])  # time step for integration
 
         # integration ranges for different pulse envelopes
         # ideally, we would integrate from -infinity to infinity, yet this is not very computationally efficient
         # empirically, it was found out that efficient integration varies for different pulses
+        # analytic formulas should be implemented in the future to avoid that
         if self.field_envelope_type == 'gauss':
             factor = 7.5
         elif self.field_envelope_type == 'lorentz':
@@ -311,14 +316,15 @@ class InitialConditions:
         s = np.arange(0, factor*self.field_fwhm, step=ds)
         cos = np.cos((de/self.hbar - loc_omega)*s)
         integral = np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
+        # the factor 2 was omitted as the Wigner transform is always normalized
 
-        return integral/np.pi/self.hbar
+        return integral
 
     def sample_initial_conditions(self, nsamples_ic, neg_handling, preselect, seed=None):
         """
-        Sample time-dependent initial condition from the excited state distribution.
-        :param nsamples_ic: number of samples to be sampled
-        :return: store the new initial conditions in the class and also save output
+        Sample time-dependent initial conditions using the Promoted Density Approach.
+        :param nsamples_ic: number of initial conditions to be sampled
+        :return: store the initial conditions within the class and save output
         """
 
         print(f"* Sampling {nsamples_ic:d} initial conditions considering the laser pulse.")
@@ -336,16 +342,16 @@ class InitialConditions:
             right = width - left
             print(f'\r{str}[', '#'*left, ' '*right, '] %d'%(percent*100/n) + '%', sep='', end='', flush=True)
 
-        # variable for selected samples
-        samples = np.zeros((5, nsamples_ic))  # index, initial time, initial excited state, de, tdm
+        # variable storing initial conditions
+        samples = np.zeros((5, nsamples_ic))  # index, excitation time, initial excited state, de, tdm
 
         # setting maximum random number generated during sampling
         rnd_max = np.max(self.tdm**2)*self.pulse_wigner(t0, de=omega + lchirp*t0)*1.01
 
         # preselection of initial conditions based on pulse spectrum in order to avoid long calculation of the Wigner
         # distribution for samples far from resonance (the more out of resonance with the field, the more the integrand
-        # oscillates and the finer grid is needed, although the result is zero)
-        # True - sample will be skipped; False - sample will be calculated
+        # oscillates and the finer grid is needed, although the result is zero; will be resolved with analytic integrals)
+        # True - sample will be skipped; False - sample will be considered for sampling of initial conditions
         if preselect:
             preselected = np.interp(x=self.de, xp=self.field_ft_omega, fp=self.field_ft) < 1e-6  # considering field_ft is normalized and positive
             print(f"  - Discarding {np.sum(preselected):d} samples that are not within the pulse spectrum [sigma(dE) < 10^-6].")
@@ -356,10 +362,10 @@ class InitialConditions:
         rng = np.random.default_rng(seed=seed)
 
         i, nattempts, start = 0, 0, timer()  # i: loop index; nattempts: to calculate efficiency of the sampling; start: time t0
-        while i < nsamples_ic:  # while loop is used because in case we need to restart it with higher rnd_max
+        while i < nsamples_ic:  # while is used in case we need to restart the loop when probability exceeds rnd_max
             nattempts += 1
 
-            # randomly selecting index of traj and exc. state
+            # randomly selecting index of traj and excited state
             rnd_index = rng.integers(low=0, high=self.nsamples, dtype=int)
             rnd_state = rng.integers(low=0, high=self.nstates, dtype=int)
 
@@ -367,10 +373,11 @@ class InitialConditions:
             if preselected[rnd_state, rnd_index]:
                 continue
 
-            # randomly selecting excitation time and random uniform number
+            # selecting randomly excitation time and random uniform number
             rnd_time = rng.uniform(low=self.tmin, high=self.tmax)
             rnd = rng.uniform(low=0, high=rnd_max)  # random number to be compared with Wig. dist.
 
+            # excitation probability
             prob = self.tdm[rnd_state, rnd_index]**2*self.pulse_wigner(rnd_time, self.de[rnd_state, rnd_index])
 
             # check and handle negative probabilities
@@ -385,13 +392,13 @@ class InitialConditions:
                 elif neg_handling == 'abs':
                     prob = np.abs(prob)
 
-            if prob > rnd_max:  # check if the probability is not higher than rnd_max
+            if prob > rnd_max:  # check if the probability is higher than rnd_max, restart while loop
                 print(f"\n - rnd_max ({rnd_max}) is smaller than probability ({prob} for sample "
                       f"{self.traj_index[rnd_index]} on state {rnd_state}). Increasing rnd_max and reruning.")
-                rnd_max *= 1.2
+                rnd_max *= 1.2  # increase rnd_max
                 samples = np.zeros((5, nsamples_ic))
-                i = 0
-            elif rnd <= prob:  # check if the point is sampled
+                i = 0  # reset index
+            elif rnd <= prob:  # check if the initial condition was accepted and save it
                 samples[0, i] = self.traj_index[rnd_index]
                 samples[1, i] = rnd_time
                 samples[2, i] = rnd_state + 1
@@ -401,16 +408,16 @@ class InitialConditions:
                 progress(i, 50, nsamples_ic, str='  - Sampling progress: ')
 
         # saving samples within the object
-        samples = samples[:, samples[0].argsort()]  # sorting according to traj index
-        self.filtered_ics = samples
+        samples = samples[:, samples[0].argsort()]  # sorting according to sample index
+        self.ics = samples
 
         print(f"\n  - Time: {timer() - start:.3f} s\n  - Success rate of random sampling: {nsamples_ic/nattempts*100:.5f}%")
 
         # getting unique initial conditions for each excited state
         unique_states, unique = np.zeros(shape=(self.nstates), dtype=int), []
         for state in range(self.nstates):
-            unique.append(np.array(np.unique(samples[0, samples[2] == state + 1]), dtype=int))  # unique traj indexes
-            unique_states[state] = len(unique[state])  # number of unique traj indexes for given state
+            unique.append(np.array(np.unique(samples[0, samples[2] == state + 1]), dtype=int))  # unique sample indexes
+            unique_states[state] = len(unique[state])  # number of unique sample indexes for given state
 
         # print indexes of trajectories that must be propagated
         if self.nstates == 1:
@@ -426,18 +433,19 @@ class InitialConditions:
 
         # save the selected samples
         np.savetxt('pda.dat', samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'],
-                   header=f"Sampling: number of ics = {nsamples_ic:d}, number of unique ics = {np.sum(unique_states):d}\n"
+                   header=f"Sampling: number of ICs = {nsamples_ic:d}, number of unique ICs = {np.sum(unique_states):d}\n"
                           f"Field parameters: omega = {self.field_omega:.5e} a.u., "
-                          f"linearchirp = {self.field_lchirp:.5e} a.u., fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
+                          f"linear_chirp = {self.field_lchirp:.5e} a.u., fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
                           f"t0 = {self.field_t0/self.fstoau:.3f} fs, envelope type = '{self.field_envelope_type}'\n"
-                          f"index        exc. time (a.u.)   el. state     dE (a.u.)        tdm (a.u.)")
+                          f"index        exc. time (a.u.)   el. state     dE (a.u.)       |tdm| (a.u.)")
         print("  - Output saved to file 'pda.dat'.")
 
     def windowing(self):
         """
         Performs Promoted Density Approach for Windowing (PDAW). The function calculates normalized weights and outputs
         the convolution functions I(t).
-        :return: Prints analysis of windowing weights and saves all the weights to an output file.
+        :return: Prints analysis of windowing weights together with convolutions functions and saves all the weights
+                 to an output file.
         """
 
         print("* Generating weights and convolution for windowing.")
@@ -457,14 +465,13 @@ class InitialConditions:
               f"t0 = {self.field_t0/self.fstoau:.3f} fs)")
 
         print("  - Calculating normalized weights:")
-        # creating a field for weigths
-        self.weights = np.zeros((self.nstates, self.nsamples))  # index, weights in different states
+        # creating a field for weights
+        self.weights = np.zeros((self.nstates, self.nsamples))  # sample index, weights in different states
 
         # generating weights for all states and samples
         for state in range(0, self.nstates):
-            for index in range(self.nsamples):
-                # calculating weights
-                self.weights[state, index] = self.tdm[state, index]**2*np.interp(self.de[state, index], self.field_ft_omega, self.field_ft)**2
+            self.weights[state] = self.tdm[state]**2*np.interp(self.de[state], self.field_ft_omega, self.field_ft)**2
+
             # analysis
             sorted = np.sort(self.weights[state, :]/np.sum(self.weights[state, :]))[::-1]  # sorting from the largest weight to smallest
             print(f"    > State {state + 1} -  analysis of normalized weights (weights/sum of weights on state {state + 1}):\n"
@@ -475,7 +482,7 @@ class InitialConditions:
         # normalization of weights at given state
         self.weights /= np.sum(self.weights)
 
-        # creating a variable for printing with first column being traj indexes
+        # creating a variable for printing with first column being sample indexes
         arr_print = np.zeros((self.nstates + 1, self.nsamples))  # index, weights in different states
         arr_print[0, :] = self.traj_index
         arr_print[1:, :] = self.weights
@@ -487,7 +494,7 @@ class InitialConditions:
 
         print("  - Weights saved to file 'pdaw.dat'.")
 
-
+# todo: here I am
 ### setting up parser ###
 parser = argparse.ArgumentParser(description="Parser for this code", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-m", "--method", default='pda', type=str,
@@ -753,7 +760,7 @@ if method == 'pda':
         emin, emax = np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau)
         tmin, tmax = np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau)
 
-        h = axs.hist2d(ics.filtered_ics[3]/ics.evtoau, ics.filtered_ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100),
+        h = axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100),
                        cmap=plt.cm.viridis, density=True)
         if lchirp != 0:
             axs.plot((omega + 2*lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color='white', linestyle='--', label=r"$\omega(t)$")
@@ -808,7 +815,7 @@ elif method == 'pdaw':
                 axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[state], linestyle='--')
                 axs.fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[state], alpha=0.2)
                 # weights of initial conditions plotted as sticks with points
-                axs.scatter(ics.de[state, :]/ics.evtoau, ics.weights[state, :]/maxw, color=colors[state],s=5)
+                axs.scatter(ics.de[state, :]/ics.evtoau, ics.weights[state, :]/maxw, color=colors[state], s=5)
                 for index in range(ics.nsamples):
                     axs.plot([ics.de[state, index]/ics.evtoau]*2, [0, ics.weights[state, index]/maxw], color=colors[state])
 
