@@ -1,4 +1,4 @@
-"""Code for filtering of initial conditions for nonadiabatic dynamics with a laser pulse.
+"""Promoted Density Approach code for including laser pulse effects into initial conditions for nonadiabatic dynamics.
 
 © Jiri Janos 2024
 """
@@ -521,11 +521,11 @@ parser.add_argument("-ps", "--preselect", action="store_true",
 parser.add_argument("input_file", help="Input file name.")
 
 ### entering code ###
-print("\n#######################################################\n"
-      "###  Filtering initial conditions with laser pulse  ###\n"
-      "###                 * * * * *                       ###\n"
-      "###      version 1.0        Jiri Janos 2024         ###\n"
-      "#######################################################\n")
+print("\n##########################################################\n"
+      "###  Promoted density approach for initial conditions  ###\n"
+      "###                   * * * * *                        ###\n"
+      "###       version 1.0         Jiri Janos 2024          ###\n"
+      "##########################################################\n")
 
 # parsing the input and creating variables from it
 print("* Parsing the input.")
@@ -828,7 +828,7 @@ elif method == 'pdaw':
         plt.show()
 
 print('\nPromoted density approached calculation finished.'
-      '\n - "May the laser pulses be with you.", ISPG\n')
+      '\n - "May the laser pulses be with you."\n')
 print("                                         \n"
       "       %.                                \n"
       "        %.                    #%%%%%%%%  \n"
