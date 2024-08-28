@@ -20,7 +20,7 @@ import numpy as np
 
 
 ### functions and classes ###
-class initial_conditions:
+class InitialConditions:
     """Class containing initial conditions. The whole code is based on this class, which
        - reads the input file
        - saves excitation energies and trasition dipole moment |mu_ij|
@@ -603,7 +603,7 @@ if nstates <= 0:
 
 ### code ###
 # creating object initial conditions
-ics = initial_conditions(nsamples=nsamples, nstates=nstates, input_type=ftype)
+ics = InitialConditions(nsamples=nsamples, nstates=nstates, input_type=ftype)
 
 # reading input data
 ics.read_input_data(fname=fname)
