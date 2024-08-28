@@ -20,7 +20,7 @@ import numpy as np
 
 
 ### functions and classes ###
-class initial_conditions:
+class InitialConditions:
     """Class containing initial conditions. The whole code is based on this class, which
        - reads the input file
        - saves excitation energies and trasition dipole moment |mu_ij|
@@ -106,7 +106,7 @@ class initial_conditions:
         :param energy_units: energy units of the input data
         :return: store data converted to atomic units
         """
-        print(f"* Converting units.")
+        print("* Converting units.")
         if energy_units == 'eV':
             self.de *= self.evtoau
         elif energy_units == 'nm':
@@ -136,14 +136,14 @@ class initial_conditions:
             """
             return de*tdm**2*np.exp(-(e - de)**2/2/h**2)
 
-        print(f"* Calculating spectrum with the Nuclear Ensemble Approach.")
+        print("* Calculating spectrum with the Nuclear Ensemble Approach.")
 
         # checking if all the necessary preceding calculations were executed
         if not self.input_read:
-            print(f"ERROR: Field yet not calculated. Please first use 'calc_field()'!")
+            print("ERROR: Field yet not calculated. Please first use 'calc_field()'!")
             exit(1)
         elif not self.units_converted:
-            print(f"ERROR: Units not converted yet. Please first use 'convert_units()'!")
+            print("ERROR: Units not converted yet. Please first use 'convert_units()'!")
             exit(1)
 
         # coefficient for intensity of the spectrum
@@ -262,12 +262,12 @@ class initial_conditions:
             integral = self.field_ft[self.field_ft_omega == 0]
 
         if integral > 0.01:  # empirical threshold which considers the spectrum has maximum equal to 1
-            print(f"  - WARNING: Pulse is too short and integral of E(t) is not equal to 0 - Maxwell's equations are "
-                  f"not fulfilled. This means that representation of pulse as envelope times cos(wt) is not physical. "
-                  f"See the original reference for more details.")
+            print("  - WARNING: Pulse is too short and integral of E(t) is not equal to 0 - Maxwell's equations are "
+                  "not fulfilled. This means that representation of pulse as envelope times cos(wt) is not physical. "
+                  "See the original reference for more details.")
             self.maxwell_fulfilled = False
         else:
-            print(f"  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
+            print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
             self.maxwell_fulfilled = True
 
         self.field_calculated = True
@@ -281,7 +281,7 @@ class initial_conditions:
         """
 
         if not self.field_calculated:
-            print(f"ERROR: Input data not read yet. Please first use 'read_input_data()'!")
+            print("ERROR: Input data not read yet. Please first use 'read_input_data()'!")
             exit(1)
 
         # setting an adaptive integration step according to the oscillation
@@ -324,10 +324,10 @@ class initial_conditions:
         print(f"* Sampling {nsamples_ic:d} initial conditions considering the laser pulse.")
 
         if not self.input_read:
-            print(f"\nERROR: Field yet not calculated. Please first use 'calc_field()'!")
+            print("\nERROR: Field yet not calculated. Please first use 'calc_field()'!")
             exit(1)
         elif not self.units_converted:
-            print(f"\nERROR: Units not converted yet. Please first use 'convert_units()'!")
+            print("\nERROR: Units not converted yet. Please first use 'convert_units()'!")
             exit(1)
 
         def progress(percent, width, n, str=''):
@@ -425,13 +425,13 @@ class initial_conditions:
                 print(f"  - State {state + 1} - {unique_states[state]} unique ICs to be propagated: \n   ", *np.array(unique[state], dtype=str))
 
         # save the selected samples
-        np.savetxt(f'pda.dat', samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'],
+        np.savetxt('pda.dat', samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'],
                    header=f"Sampling: number of ics = {nsamples_ic:d}, number of unique ics = {np.sum(unique_states):d}\n"
                           f"Field parameters: omega = {self.field_omega:.5e} a.u., "
                           f"linearchirp = {self.field_lchirp:.5e} a.u., fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
                           f"t0 = {self.field_t0/self.fstoau:.3f} fs, envelope type = '{self.field_envelope_type}'\n"
                           f"index        exc. time (a.u.)   el. state     dE (a.u.)        tdm (a.u.)")
-        print(f"  - Output saved to file 'pda.dat'.")
+        print("  - Output saved to file 'pda.dat'.")
 
     def windowing(self):
         """
@@ -440,7 +440,7 @@ class initial_conditions:
         :return: Prints analysis of windowing weights and saves all the weights to an output file.
         """
 
-        print(f"* Generating weights and convolution for windowing.")
+        print("* Generating weights and convolution for windowing.")
 
         # determine and print convolution function
         if self.field_envelope_type == 'gauss':
@@ -456,7 +456,7 @@ class initial_conditions:
         print(f"  - Convolution: {self.conv}\n  - Parameters:  fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
               f"t0 = {self.field_t0/self.fstoau:.3f} fs)")
 
-        print(f"  - Calculating normalized weights:")
+        print("  - Calculating normalized weights:")
         # creating a field for weigths
         self.weights = np.zeros((self.nstates, self.nsamples))  # index, weights in different states
 
@@ -480,12 +480,12 @@ class initial_conditions:
         arr_print[0, :] = self.traj_index
         arr_print[1:, :] = self.weights
 
-        np.savetxt(f'pdaw.dat', arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates,
+        np.savetxt('pdaw.dat', arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates,
                    header=f"Convolution: '{self.conv}'\nParameters:  fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
                           f"t0 = {self.field_t0/self.fstoau:.3f} fs\n"
                           f"index        " + str(' '*8).join([f"weight S{s + 1:d}" for s in range(self.nstates)]))
 
-        print(f"  - Weights saved to file 'pdaw.dat'.")
+        print("  - Weights saved to file 'pdaw.dat'.")
 
 
 ### setting up parser ###
@@ -528,7 +528,7 @@ print("\n#######################################################\n"
       "#######################################################\n")
 
 # parsing the input and creating variables from it
-print(f"* Parsing the input.")
+print("* Parsing the input.")
 config = vars(parser.parse_args())
 for item in config:
     add = ''
@@ -561,27 +561,27 @@ t0 *= fstoau
 fwhm *= fstoau
 
 # checking input
-if not method in ['pda', 'pdaw']:
+if method not in ['pda', 'pdaw']:
     print(f"\nERROR: '{method}' is not available method!")
     exit(1)
 
-if not energy_units in ['a.u.', 'eV', 'nm', 'cm-1']:
+if energy_units not in ['a.u.', 'eV', 'nm', 'cm-1']:
     print(f"\nERROR: '{energy_units}' is not available unit for energy!")
     exit(1)
 
-if not tdm_units in ['a.u.', 'debye']:
+if tdm_units not in ['a.u.', 'debye']:
     print(f"\nERROR: '{tdm_units}' is not available unit for transition dipole moment!")
     exit(1)
 
-if not ftype in ['file']:
+if ftype not in ['file']:
     print(f"\nERROR: '{ftype}' is not available file type!")
     exit(1)
 
-if not envelope_type in ['gauss', 'lorentz', 'sech', 'sin', 'sin2']:
+if envelope_type not in ['gauss', 'lorentz', 'sech', 'sin', 'sin2']:
     print(f"\nERROR: '{envelope_type}' is not available envelope type!")
     exit(1)
 
-if not neg_handling in ['error', 'ignore', 'abs']:
+if neg_handling not in ['error', 'ignore', 'abs']:
     print(f"\nERROR: '{neg_handling}' is not an available option for handling negative probabilities!")
     exit(1)
 
@@ -603,7 +603,7 @@ if nstates <= 0:
 
 ### code ###
 # creating object initial conditions
-ics = initial_conditions(nsamples=nsamples, nstates=nstates, input_type=ftype)
+ics = InitialConditions(nsamples=nsamples, nstates=nstates, input_type=ftype)
 
 # reading input data
 ics.read_input_data(fname=fname)
@@ -618,7 +618,8 @@ ics.calc_spectrum()
 if plotting:
     print("  - Plotting Figure 1")
     colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
-    if ics.nstates > 1: colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
+    if ics.nstates > 1:
+        colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
     fig, axs = plt.subplots(1, 3, figsize=(12, 3.5))
     fig.suptitle("Characteristics of initial conditions (ICs) loaded")
 
@@ -720,7 +721,7 @@ if plotting:
         axs.set_xlabel(r"$E$ (eV)")
         axs.set_ylabel(r"Pulse spectrum")
         axs.set_title(r"$\int_{-\infty}^\infty \vec{E}(t) \mathregular{d}t = \mathcal{F}[\vec{E}(t)]|_{\omega=0} \neq 0$"
-                      f"\nViolation of Maxwell's equations!")
+                      "\nViolation of Maxwell's equations!")
         axs.minorticks_on()
         axs.tick_params('both', direction='in', which='both', top=True, right=True)
 
@@ -792,7 +793,8 @@ elif method == 'pdaw':
         else:
             print("  - Plotting Figure 4")
         colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
-        if ics.nstates > 1: colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
+        if ics.nstates > 1:
+            colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
         fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
         fig.suptitle("Selected initial conditions and their weights")
 
