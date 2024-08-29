@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Promoted Density Approach code for including laser pulse effects into initial conditions for nonadiabatic dynamics.
 
 © Jiri Janos 2024
@@ -17,6 +18,48 @@ from timeit import default_timer as timer
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+
+ENERGY_UNITS = ['a.u.', 'eV', 'nm', 'cm-1']
+TDM_UNITS = ['a.u.', 'debye']
+METHODS = ['pda', 'pdaw']
+ENVELOPE_TYPES = ['gauss', 'lorentz', 'sech', 'sin', 'sin2']
+NEG_PROB_HANDLING = ['error', 'ignore', 'abs']
+FILE_TYPES = ['file']
+
+DESC = "Promoted density approach for initial conditions"
+
+def print_header():
+    print(
+        "\n##########################################################\n"
+        f"###  {DESC}  ###\n"
+        "###                   * * * * *                        ###\n"
+        "###       version 1.0         Jiri Janos 2024          ###\n"
+        "##########################################################\n"
+    )
+
+def print_footer():
+    print(
+        '\nPromoted density approached calculation finished.'
+        '\n - "May the laser pulses be with you."\n'
+    )
+    print(
+        "                                         \n"
+        "       %.                                \n"
+        "        %.                    #%%%%%%%%  \n"
+        "         %.        %%        %%%%%%%%%%% \n"
+        "          %.    %%%%%       %%%%%%%%%%%% \n"
+        "           %  %%%%%%%%%    %%%%%%%%%%%%* \n"
+        "            %  %%%%%%%%%   %%%%%%%%%%%   \n"
+        "             %    %%%%%%%  %%%%%%%%      \n"
+        "              %%%%%%%%%%%  %%%%%%%       \n"
+        "              %%+%%%%%%%%% %%%%%%%       \n"
+        "                   %%%%%%% %%%%%%        \n"
+        "                %%%%%%%%%% %%%%%%        \n"
+        "                 %%%%%%%%%%%%%%%         \n"
+        "                %%%%%%%%%%%%%%           \n"
+        "                                           "
+    )
 
 
 ### functions and classes ###
@@ -495,29 +538,29 @@ class InitialConditions:
         print("  - Weights saved to file 'pdaw.dat'.")
 
 ### setting up parser ###
-parser = argparse.ArgumentParser(description="Parser for this code", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("-m", "--method", default='pda', type=str,
+parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("-m", "--method", default='pda', choices=METHODS,
                     help="Select either Promoted density approach (PDA) to generate initial conditions with excitation times or "
-                         "PDA for windowing (PDAW) to generate weights and convolution parameters. Options: 'pda', 'pdaw'.")
+                         "PDA for windowing (PDAW) to generate weights and convolution parameters.")
 parser.add_argument("-n", "--nsamples", default=0, type=int,
                     help="Number of data from the input file considered. 0 takes all initial conditions provided in the input file.")
 parser.add_argument("-np", "--npsamples", default=1000, type=int, help="Number of initial conditions generated with PDA.")
 parser.add_argument("-ns", "--nstates", default=1, type=int, help="Number of excited states considered.")
-parser.add_argument("-ft", "--file_type", default='file', help="Input file type. Options: 'file'.")
-parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results. Plots are saved as png images.")
-parser.add_argument("-eu", "--energy_units", default='a.u.', help="Units in which energies are provided. Options: 'a.u.', 'eV', 'nm', 'cm-1'. ")
-parser.add_argument("-tu", "--tdm_units", default='a.u.',
-                    help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided. Options: 'a.u.', 'debye'.")
+parser.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
+parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results and save them as png images.")
+parser.add_argument("-eu", "--energy_units", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
+parser.add_argument("-tu", "--tdm_units", choices=TDM_UNITS, default='a.u.',
+                    help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
 parser.add_argument("-w", "--omega", default=0.1, type=float, help="Frequency of the field in a.u.")
 parser.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
 parser.add_argument("-f", "--fwhm", default=10.0, type=float,
                     help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
 parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
-parser.add_argument("-env", "--envelope_type", default='gauss', help="Field envelope type. Options: 'gauss', 'lorentz', 'sech', 'sin', 'sin2'.")
-parser.add_argument("-neg", "--neg_handling", default='error',
-                    help="Procedures how to handle negative probabilities. Options: 'error', 'ignore', 'abs'.")
+parser.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
+parser.add_argument("-neg", "--neg_handling", choices=NEG_PROB_HANDLING, default='error',
+                    help="Procedures how to handle negative probabilities.")
 parser.add_argument("-s", "--seed", default=None, type=int,
-                    help="Seed for the random number generator. Default (None) generates random seed from OS.")
+                    help="Seed for the random number generator. Default: generate random seed from OS.")
 parser.add_argument("-ps", "--preselect", action="store_true",
                     help="Preselect samples within pulse spectrum for PDA. This option provides significant speed "
                          "up if the pulse spectrum covers only small part of the absorption spectrum as it avoids expensive "
@@ -526,15 +569,11 @@ parser.add_argument("-ps", "--preselect", action="store_true",
 parser.add_argument("input_file", help="Input file name.")
 
 ### entering code ###
-print("\n##########################################################\n"
-      "###  Promoted density approach for initial conditions  ###\n"
-      "###                   * * * * *                        ###\n"
-      "###       version 1.0         Jiri Janos 2024          ###\n"
-      "##########################################################\n")
-
-# parsing the input and printing it
-print("* Parsing the input.")
+# Parse the input and print it
 config = vars(parser.parse_args())
+
+print_header()
+
 for item in config:
     add = ''
     if item == 'nsamples' and config[item] == 0:
@@ -566,30 +605,6 @@ t0 *= fstoau
 fwhm *= fstoau
 
 # checking input
-if method not in ['pda', 'pdaw']:
-    print(f"\nERROR: '{method}' is not available method!")
-    exit(1)
-
-if energy_units not in ['a.u.', 'eV', 'nm', 'cm-1']:
-    print(f"\nERROR: '{energy_units}' is not available unit for energy!")
-    exit(1)
-
-if tdm_units not in ['a.u.', 'debye']:
-    print(f"\nERROR: '{tdm_units}' is not available unit for transition dipole moment!")
-    exit(1)
-
-if ftype not in ['file']:
-    print(f"\nERROR: '{ftype}' is not available file type!")
-    exit(1)
-
-if envelope_type not in ['gauss', 'lorentz', 'sech', 'sin', 'sin2']:
-    print(f"\nERROR: '{envelope_type}' is not available envelope type!")
-    exit(1)
-
-if neg_handling not in ['error', 'ignore', 'abs']:
-    print(f"\nERROR: '{neg_handling}' is not an available option for handling negative probabilities!")
-    exit(1)
-
 if not exists(fname):
     print(f"\nERROR: file '{fname}' not found!")
     exit(1)
@@ -832,20 +847,4 @@ elif method == 'pdaw':
         plt.savefig('pdaw', dpi=300)
         plt.show()
 
-print('\nPromoted density approached calculation finished.'
-      '\n - "May the laser pulses be with you."\n')
-print("                                         \n"
-      "       %.                                \n"
-      "        %.                    #%%%%%%%%  \n"
-      "         %.        %%        %%%%%%%%%%% \n"
-      "          %.    %%%%%       %%%%%%%%%%%% \n"
-      "           %  %%%%%%%%%    %%%%%%%%%%%%* \n"
-      "            %  %%%%%%%%%   %%%%%%%%%%%   \n"
-      "             %    %%%%%%%  %%%%%%%%      \n"
-      "              %%%%%%%%%%%  %%%%%%%       \n"
-      "              %%+%%%%%%%%% %%%%%%%       \n"
-      "                   %%%%%%% %%%%%%        \n"
-      "                %%%%%%%%%% %%%%%%        \n"
-      "                 %%%%%%%%%%%%%%%         \n"
-      "                %%%%%%%%%%%%%%           \n"
-      "                                           ")
+print_footer()
