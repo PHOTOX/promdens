@@ -44,7 +44,6 @@ def print_footer():
         '\n - "May the laser pulses be with you."\n'
     )
     print(
-        "                                         \n"
         "       %.                                \n"
         "        %.                    #%%%%%%%%  \n"
         "         %.        %%        %%%%%%%%%%% \n"
@@ -109,38 +108,34 @@ class InitialConditions:
         :return: store all the data within the class
         """
         print(f"* Reading data from file '{fname}' of input file type '{self.input_type}'.")
-        if self.input_type == 'file':
-            try:
-                input = np.loadtxt(fname, dtype=float).T  # reading input file with numpy
-            except FileNotFoundError as err:
-                print(f"\nERROR: Input file '{fname}' not found!\n (Error: {err})")
-                exit(1)
-            except ValueError as err:
-                print(err)
-                print(f"\nERROR: Incorrect value type encountered in the input file '{fname}'!\n (Error: {err})")
-                exit(1)
-            except Exception as err:
-                print(f"\nERROR: Unexpected error: {err}, type: {type(err)}")
-                exit(1)
-
-            if np.shape(input)[0] < self.nstates*2 + 1:  # check enough columns provided in the file for required nstates
-                print(f"\nERROR: Not enough columns provided in the input file '{fname}'! "
-                      f"\nExpected {self.nstates*2 + 1} columns for {self.nstates} excited states.")
-                exit(1)
-
-            if self.nsamples == 0:  # use all samples loaded if user input nsamples is 0
-                self.nsamples = np.shape(input)[1]
-                print(f"  - Number of samples loaded from the input file: {self.nsamples}")
-            elif self.nsamples > np.shape(input)[1]:  # check if requested nsamples is not larger than provided in the input
-                print(f"  - Number of samples loaded from the input file {np.shape(input)[1]} instead of requested {self.nsamples}")
-                self.nsamples = np.shape(input)[1]
-
-            self.traj_index = np.array(input[0, :self.nsamples], dtype=int)  # saving indexes of trajectories
-            self.de = input[1:self.nstates*2:2, :self.nsamples]  # saving excitation energies
-            self.tdm = input[2:self.nstates*2 + 1:2, :self.nsamples]  # saving transition dipole moments
-        else:  # possible extension to other input file types
-            print(f"\nERROR: File type '{self.input_type}' not supported!")
+        try:
+            input = np.loadtxt(fname, dtype=float).T  # reading input file with numpy
+        except FileNotFoundError as err:
+            print(f"\nERROR: Input file '{fname}' not found!\n (Error: {err})")
             exit(1)
+        except ValueError as err:
+            print(err)
+            print(f"\nERROR: Incorrect value type encountered in the input file '{fname}'!\n (Error: {err})")
+            exit(1)
+        except Exception as err:
+            print(f"\nERROR: Unexpected error: {err}, type: {type(err)}")
+            exit(1)
+
+        if np.shape(input)[0] < self.nstates*2 + 1:  # check enough columns provided in the file for required nstates
+            print(f"\nERROR: Not enough columns provided in the input file '{fname}'! "
+                  f"\nExpected {self.nstates*2 + 1} columns for {self.nstates} excited states.")
+            exit(1)
+
+        if self.nsamples == 0:  # use all samples loaded if user input nsamples is 0
+            self.nsamples = np.shape(input)[1]
+            print(f"  - Number of samples loaded from the input file: {self.nsamples}")
+        elif self.nsamples > np.shape(input)[1]:  # check if requested nsamples is not larger than provided in the input
+            print(f"  - Number of samples loaded from the input file {np.shape(input)[1]} instead of requested {self.nsamples}")
+            self.nsamples = np.shape(input)[1]
+
+        self.traj_index = np.array(input[0, :self.nsamples], dtype=int)  # saving indexes of trajectories
+        self.de = input[1:self.nstates*2:2, :self.nsamples]  # saving excitation energies
+        self.tdm = input[2:self.nstates*2 + 1:2, :self.nsamples]  # saving transition dipole moments
 
         self.input_read = True
 
