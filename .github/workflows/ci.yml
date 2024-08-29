@@ -31,4 +31,4 @@ jobs:
       run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
 
     - name: Basic smoke test
-      run: uv run IC_filtering.py --help
+      run: uv run promdens.py --help

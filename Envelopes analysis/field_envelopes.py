@@ -1,4 +1,4 @@
-"""Analysis of electric field envelopes available in IC_filtering.py
+"""Analysis of electric field envelopes available in promdens.py
 
 """
 
@@ -86,7 +86,7 @@ class envelopes:
             self.tmin, self.tmax = self.field_t0 - self.field_fwhm, self.field_t0 + self.field_fwhm
         elif self.field_envelope_type == 'sin2':
             print("  - E(t) = sin(pi/2*(t-t0+T)/T)^2*cos((omega+lchirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm")
-            T = 1.373412575*self.field_fwhm
+            T = 1/(2-4/np.pi*np.arcsin(2**(-1/4)))*self.field_fwhm
             self.tmin, self.tmax = self.field_t0 - T, self.field_t0 + T
 
         # calculating the field
@@ -254,8 +254,8 @@ for i in range(len(envelope_types)):
 axs[0, 0].set_ylabel(r"$t$ (fs)")
 axs[1, 0].set_ylabel(r"$t$ (fs)")
 
-axs[0, 0].text(x=np.min(e) + 0.03, y=np.max(t) - 0.15*fwhm/fstoau, s=r"$\mathcal{W}(t,\Delta E)$", va="top", ha="left")
-axs[1, 0].text(x=np.min(e) + 0.03, y=np.max(t) - 0.15*fwhm/fstoau, s=r"$\ln[\mathcal{W}(t,\Delta E)]$", va="top", ha="left")
+axs[0, 0].text(x=np.min(e) + 0.03, y=np.max(t) - 0.15*fwhm/fstoau, s=r"$\mathcal{W}_E(t,\Delta E)$", va="top", ha="left")
+axs[1, 0].text(x=np.min(e) + 0.03, y=np.max(t) - 0.15*fwhm/fstoau, s=r"$\ln[\mathcal{W}_E(t,\Delta E)]$", va="top", ha="left")
 
 plt.tight_layout()
 fig.subplots_adjust(wspace=0, hspace=0)
