@@ -494,34 +494,32 @@ class InitialConditions:
 
         print("  - Weights saved to file 'pdaw.dat'.")
 
-# todo: here I am
 ### setting up parser ###
 parser = argparse.ArgumentParser(description="Parser for this code", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-m", "--method", default='pda', type=str,
                     help="Select either Promoted density approach (PDA) to generate initial conditions with excitation times or "
                          "PDA for windowing (PDAW) to generate weights and convolution parameters. Options: 'pda', 'pdaw'.")
 parser.add_argument("-n", "--nsamples", default=0, type=int,
-                    help="Number of initial conditions considered for sampling. 0 takes all initial conditions provided in the input file.")
-parser.add_argument("-np", "--npsamples", default=1000, type=int, help="Number of promoted initial conditions to be calculated.")
+                    help="Number of data from the input file considered. 0 takes all initial conditions provided in the input file.")
+parser.add_argument("-np", "--npsamples", default=1000, type=int, help="Number of initial conditions generated with PDA.")
 parser.add_argument("-ns", "--nstates", default=1, type=int, help="Number of excited states considered.")
 parser.add_argument("-ft", "--file_type", default='file', help="Input file type. Options: 'file'.")
-parser.add_argument("-p", "--plot", action="store_true", help="Plot along the code to see loaded data and results. Plots are saved as png images.")
+parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results. Plots are saved as png images.")
 parser.add_argument("-eu", "--energy_units", default='a.u.', help="Units in which energies are provided. Options: 'a.u.', 'eV', 'nm', 'cm-1'. ")
 parser.add_argument("-tu", "--tdm_units", default='a.u.',
-                    help="Units in which transition dipole moments (|mu_ij|) are provided. Options: 'a.u.', 'debye'. "
-                         "If input file type is Newton-X, defaults for Newton-X will be taken.")
-parser.add_argument("-w", "--omega", default=0.1, type=float, help="Frequency of the field omega in a.u.")
+                    help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided. Options: 'a.u.', 'debye'.")
+parser.add_argument("-w", "--omega", default=0.1, type=float, help="Frequency of the field in a.u.")
 parser.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
 parser.add_argument("-f", "--fwhm", default=10.0, type=float,
-                    help="Full Width Half Maximum (FWHM) parameter in fs for the pulse intentsity envelope.")
-parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the maximum of the field in fs.")
-parser.add_argument("-env", "--envelope_type", default='gauss', help="Type of field envelope. Options: 'gauss', 'lorentz', 'sech', 'sin', 'sin2'.")
+                    help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
+parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
+parser.add_argument("-env", "--envelope_type", default='gauss', help="Field envelope type. Options: 'gauss', 'lorentz', 'sech', 'sin', 'sin2'.")
 parser.add_argument("-neg", "--neg_handling", default='error',
                     help="Procedures how to handle negative probabilities. Options: 'error', 'ignore', 'abs'.")
 parser.add_argument("-s", "--seed", default=None, type=int,
                     help="Seed for the random number generator. Default (None) generates random seed from OS.")
 parser.add_argument("-ps", "--preselect", action="store_true",
-                    help="Preselect samples within pulse spectrum for sampling. This option provides significant speed "
+                    help="Preselect samples within pulse spectrum for PDA. This option provides significant speed "
                          "up if the pulse spectrum covers only small part of the absorption spectrum as it avoids expensive "
                          "calculation of W for non-resonant cases. The lost of accuracy should be minimal, yet we still "
                          "recommend to use this option only if the calculation is too expensive, e.g. for very long pulses.")
@@ -534,13 +532,13 @@ print("\n##########################################################\n"
       "###       version 1.0         Jiri Janos 2024          ###\n"
       "##########################################################\n")
 
-# parsing the input and creating variables from it
+# parsing the input and printing it
 print("* Parsing the input.")
 config = vars(parser.parse_args())
 for item in config:
     add = ''
     if item == 'nsamples' and config[item] == 0:
-        add = '(max number provided in the input will be used)'
+        add = '(All input data will be used)'
     print(f"  - {item:20s}: {config[item]}   {add}")
 
 # storing input into variables used in the code
@@ -615,10 +613,10 @@ ics = InitialConditions(nsamples=nsamples, nstates=nstates, input_type=ftype)
 # reading input data
 ics.read_input_data(fname=fname)
 
-# converting units to make everything in atomic units
+# converting energy and tdm units to atomic units
 ics.convert_units(energy_units=energy_units, tdm_units=tdm_units)
 
-# calculating spectrum
+# calculating spectrum with nuclear ensemble approach
 ics.calc_spectrum()
 
 # plotting loaded data
@@ -671,7 +669,7 @@ if plotting:
     plt.savefig('spectrum', dpi=300)
     plt.show(block=False)
 
-# calculating the field
+# calculating the field and its spectrum
 ics.calc_field(omega=omega, fwhm=fwhm, t0=t0, lchirp=lchirp, envelope_type=envelope_type)
 
 # plotting field
@@ -736,7 +734,7 @@ if plotting:
         plt.savefig('field_maxwell_violation', dpi=300)
         plt.show(block=False)
 
-# sampling
+# perform either PDA or PDAW and plot
 if method == 'pda':
     ics.sample_initial_conditions(nsamples_ic=new_nsamples, neg_handling=neg_handling, preselect=preselect, seed=seed)
     if plotting:
