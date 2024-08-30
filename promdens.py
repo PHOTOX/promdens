@@ -593,6 +593,7 @@ config = vars(parser.parse_args())
 
 print_header()
 
+print("* Input parameters:")
 for item in config:
     add = ''
     if item == 'nsamples' and config[item] == 0:
