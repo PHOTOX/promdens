@@ -19,7 +19,6 @@ from timeit import default_timer as timer
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 ENERGY_UNITS = ['a.u.', 'eV', 'nm', 'cm-1']
 TDM_UNITS = ['a.u.', 'debye']
 METHODS = ['pda', 'pdaw']
@@ -29,36 +28,34 @@ FILE_TYPES = ['file']
 
 DESC = "Promoted density approach for initial conditions"
 
+
+### functions and classes ###
 def print_header():
-    print(
-        "\n##########################################################\n"
-        f"###  {DESC}  ###\n"
-        "###                   * * * * *                        ###\n"
-        "###       version 1.0         Jiri Janos 2024          ###\n"
-        "##########################################################\n"
-    )
+    print("\n##########################################################\n"
+          f"###  {DESC}  ###\n"
+          "###                   * * * * *                        ###\n"
+          "###       version 1.0         Jiri Janos 2024          ###\n"
+          "##########################################################\n")
+
 
 def print_footer():
-    print(
-        '\nPromoted density approached calculation finished.'
-        '\n - "May the laser pulses be with you."\n'
-    )
-    print(
-        "       %.                                \n"
-        "        %.                    #%%%%%%%%  \n"
-        "         %.        %%        %%%%%%%%%%% \n"
-        "          %.    %%%%%       %%%%%%%%%%%% \n"
-        "           %  %%%%%%%%%    %%%%%%%%%%%%* \n"
-        "            %  %%%%%%%%%   %%%%%%%%%%%   \n"
-        "             %    %%%%%%%  %%%%%%%%      \n"
-        "              %%%%%%%%%%%  %%%%%%%       \n"
-        "              %%+%%%%%%%%% %%%%%%%       \n"
-        "                   %%%%%%% %%%%%%        \n"
-        "                %%%%%%%%%% %%%%%%        \n"
-        "                 %%%%%%%%%%%%%%%         \n"
-        "                %%%%%%%%%%%%%%           \n"
-        "                                           "
-    )
+    print('\nPromoted density approached calculation finished.'
+          '\n - "May the laser pulses be with you."\n')
+    print("       %.                                \n"
+          "        %.                    #%%%%%%%%  \n"
+          "         %.        %%        %%%%%%%%%%% \n"
+          "          %.    %%%%%       %%%%%%%%%%%% \n"
+          "           %  %%%%%%%%%    %%%%%%%%%%%%* \n"
+          "            %  %%%%%%%%%   %%%%%%%%%%%   \n"
+          "             %    %%%%%%%  %%%%%%%%      \n"
+          "              %%%%%%%%%%%  %%%%%%%       \n"
+          "              %%+%%%%%%%%% %%%%%%%       \n"
+          "                   %%%%%%% %%%%%%        \n"
+          "                %%%%%%%%%% %%%%%%        \n"
+          "                 %%%%%%%%%%%%%%%         \n"
+          "                %%%%%%%%%%%%%%           \n"
+          "                                           ")
+
 
 def positive_int(str_value: str) -> int:
     """Convert a string into a positive integer.
@@ -85,7 +82,7 @@ def positive_float(str_value: str) -> float:
         raise ValueError(f"'{val}' is not a positive real number")
     return val
 
-### functions and classes ###
+
 class InitialConditions:
     """The main class around which the code is build containing all the data and functions.
     The class:
@@ -556,6 +553,7 @@ class InitialConditions:
 
         print("  - Weights saved to file 'pdaw.dat'.")
 
+
 ### setting up parser ###
 parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-m", "--method", default='pda', choices=METHODS,
@@ -576,8 +574,7 @@ parser.add_argument("-f", "--fwhm", required=True, type=positive_float,
                     help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
 parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
 parser.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
-parser.add_argument("-neg", "--neg_handling", choices=NEG_PROB_HANDLING, default='error',
-                    help="Procedures how to handle negative probabilities.")
+parser.add_argument("-neg", "--neg_handling", choices=NEG_PROB_HANDLING, default='error', help="Procedures how to handle negative probabilities.")
 parser.add_argument("-s", "--seed", default=None, type=positive_int,
                     help="Seed for the random number generator. Default: generate random seed from OS.")
 parser.add_argument("-ps", "--preselect", action="store_true",
@@ -598,8 +595,9 @@ for item in config:
     add = ''
     if item == 'nsamples' and config[item] == 0:
         add = '(All input data will be used)'
-    print(f"  - {item:20s}: {config[item]}   {add}")
-print()
+    elif item in ['npsamples', 'seed', 'preselect', 'neg_handling'] and config['method'] == 'pdaw':
+        add = '(Parameter not necessary for PDAW)'
+    print(f"  - {item:20s}: {str(config[item]):12s}   {add}")
 
 # storing input into variables used in the code
 method = config['method']
@@ -782,8 +780,8 @@ if method == 'pda':
         emin, emax = np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau)
         tmin, tmax = np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau)
 
-        h = axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100),
-                       cmap=plt.cm.viridis, density=True)
+        h = axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100), cmap=plt.cm.viridis,
+                       density=True)
         if lchirp != 0:
             axs.plot((omega + 2*lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color='white', linestyle='--', label=r"$\omega(t)$")
             axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
