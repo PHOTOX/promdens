@@ -13,7 +13,7 @@
 # ///
 
 import argparse
-from os.path import exists
+from pathlib import Path
 from timeit import default_timer as timer
 
 import matplotlib.pyplot as plt
@@ -599,6 +599,7 @@ for item in config:
     if item == 'nsamples' and config[item] == 0:
         add = '(All input data will be used)'
     print(f"  - {item:20s}: {config[item]}   {add}")
+print()
 
 # storing input into variables used in the code
 method = config['method']
@@ -625,8 +626,8 @@ t0 *= fstoau
 fwhm *= fstoau
 
 # checking input
-if not exists(fname):
-    print(f"\nERROR: file '{fname}' not found!")
+if not Path(fname).is_file():
+    print(f"ERROR: file '{fname}' not found!")
     exit(1)
 
 ### code ###
