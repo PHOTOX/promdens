@@ -125,7 +125,7 @@ class InitialConditions:
         self.field_calculated = False
         self.maxwell_fulfilled = False
 
-    def read_input_data(self, fname='ics.dat'):
+    def read_input_data(self, fname):
         """
         Reading the input data: index of traj, excitation energies and magnitudes of transition dipole moments.
         :param fname: name of the input file
