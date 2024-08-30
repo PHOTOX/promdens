@@ -1,6 +1,6 @@
 # Promoted Density Approach code
 
-`promdens.py` is a code implementing Promoted Density Approach (PDA) and its version for widnowing (PDAW) freely available to the scientific community.
+`promdens.py` is a code implementing Promoted Density Approach (PDA) and its version for windowing (PDAW) freely available to the scientific community.
 The code is constructed as a standalone Python script, requiring only basic Python libraries such as matplotlib or numpy. 
 In the future, the authors plan to turn the script into a Python library that can be downloaded via the pip command and integrated to other codes. 
 
