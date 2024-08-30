@@ -563,8 +563,6 @@ parser.add_argument("-n", "--nsamples", default=0, type=positive_int,
                     help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
 parser.add_argument("-np", "--npsamples", default=1000, type=positive_int, help="Number of initial conditions generated with PDA.")
 parser.add_argument("-ns", "--nstates", default=1, type=positive_int, help="Number of excited states considered.")
-parser.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
-parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results and save them as png images.")
 parser.add_argument("-eu", "--energy_units", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
 parser.add_argument("-tu", "--tdm_units", choices=TDM_UNITS, default='a.u.',
                     help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
@@ -575,13 +573,15 @@ parser.add_argument("-f", "--fwhm", required=True, type=positive_float,
 parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
 parser.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
 parser.add_argument("-neg", "--neg_handling", choices=NEG_PROB_HANDLING, default='error', help="Procedures how to handle negative probabilities.")
-parser.add_argument("-s", "--seed", default=None, type=positive_int,
+parser.add_argument("-s", "--random_seed", default=None, type=positive_int,
                     help="Seed for the random number generator. Default: generate random seed from OS.")
 parser.add_argument("-ps", "--preselect", action="store_true",
                     help="Preselect samples within pulse spectrum for PDA. This option provides significant speed "
                          "up if the pulse spectrum covers only small part of the absorption spectrum as it avoids expensive "
                          "calculation of W for non-resonant cases. The lost of accuracy should be minimal, yet we still "
                          "recommend to use this option only if the calculation is too expensive, e.g. for very long pulses.")
+parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results and save them as png images.")
+parser.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
 parser.add_argument("input_file", help="Input file name.")
 
 ### entering code ###
@@ -595,9 +595,9 @@ for item in config:
     add = ''
     if item == 'nsamples' and config[item] == 0:
         add = '(All input data will be used)'
-    elif item in ['npsamples', 'seed', 'preselect', 'neg_handling'] and config['method'] == 'pdaw':
-        add = '(Parameter not necessary for PDAW)'
-    print(f"  - {item:20s}: {str(config[item]):12s}   {add}")
+    elif item in ['npsamples', 'random_seed', 'preselect', 'neg_handling'] and config['method'] == 'pdaw':
+        continue
+    print(f"  - {item:20s}: {config[item]}   {add}")
 
 # storing input into variables used in the code
 method = config['method']
@@ -614,7 +614,7 @@ t0 = config['t0']
 envelope_type = config['envelope_type']
 neg_handling = config['neg_handling']
 preselect = config['preselect']
-seed = config['seed']
+seed = config['random_seed']
 ftype = config['file_type']
 fname = config['input_file']
 
