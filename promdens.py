@@ -60,6 +60,30 @@ def print_footer():
         "                                           "
     )
 
+def positive_int(str_value: str) -> int:
+    """Convert a string into a positive integer.
+
+    This is a helper type conversion function
+    for user input type checking by argparse, see:
+    https://docs.python.org/3/library/argparse.html#type
+
+    raises: ValueError if string is not a positive integer
+    """
+    val = int(str_value)
+    if val <= 0:
+        raise ValueError(f"'{val}' is not a positive integer")
+    return val
+
+
+def positive_float(str_value: str) -> float:
+    """Convert a string into a positive float.
+
+    raises: ValueError if string is not a positive real number
+    """
+    val = float(str_value)
+    if val <= 0:
+        raise ValueError(f"'{val}' is not a positive real number")
+    return val
 
 ### functions and classes ###
 class InitialConditions:
@@ -537,24 +561,24 @@ parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.Argu
 parser.add_argument("-m", "--method", default='pda', choices=METHODS,
                     help="Select either Promoted density approach (PDA) to generate initial conditions with excitation times or "
                          "PDA for windowing (PDAW) to generate weights and convolution parameters.")
-parser.add_argument("-n", "--nsamples", default=0, type=int,
-                    help="Number of data from the input file considered. 0 takes all initial conditions provided in the input file.")
-parser.add_argument("-np", "--npsamples", default=1000, type=int, help="Number of initial conditions generated with PDA.")
-parser.add_argument("-ns", "--nstates", default=1, type=int, help="Number of excited states considered.")
+parser.add_argument("-n", "--nsamples", default=0, type=positive_int,
+                    help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
+parser.add_argument("-np", "--npsamples", default=1000, type=positive_int, help="Number of initial conditions generated with PDA.")
+parser.add_argument("-ns", "--nstates", default=1, type=positive_int, help="Number of excited states considered.")
 parser.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
 parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results and save them as png images.")
 parser.add_argument("-eu", "--energy_units", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
 parser.add_argument("-tu", "--tdm_units", choices=TDM_UNITS, default='a.u.',
                     help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
-parser.add_argument("-w", "--omega", default=0.1, type=float, help="Frequency of the field in a.u.")
+parser.add_argument("-w", "--omega", required=True, type=positive_float, help="Frequency of the field in a.u.")
 parser.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
-parser.add_argument("-f", "--fwhm", default=10.0, type=float,
+parser.add_argument("-f", "--fwhm", required=True, type=positive_float,
                     help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
 parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
 parser.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
 parser.add_argument("-neg", "--neg_handling", choices=NEG_PROB_HANDLING, default='error',
                     help="Procedures how to handle negative probabilities.")
-parser.add_argument("-s", "--seed", default=None, type=int,
+parser.add_argument("-s", "--seed", default=None, type=positive_int,
                     help="Seed for the random number generator. Default: generate random seed from OS.")
 parser.add_argument("-ps", "--preselect", action="store_true",
                     help="Preselect samples within pulse spectrum for PDA. This option provides significant speed "
@@ -602,18 +626,6 @@ fwhm *= fstoau
 # checking input
 if not exists(fname):
     print(f"\nERROR: file '{fname}' not found!")
-    exit(1)
-
-if nsamples < 0:
-    print(f"\nERROR: nsamples is smaller than 0 ({nsamples})!")
-    exit(1)
-
-if new_nsamples <= 0:
-    print(f"\nERROR: npsamples is smaller than 0 ({new_nsamples})!")
-    exit(1)
-
-if nstates <= 0:
-    print(f"\nERROR: invalid number of excited states (nstates={nstates})!")
     exit(1)
 
 ### code ###
