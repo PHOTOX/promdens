@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Promoted Density Approach code for including laser pulse effects into initial conditions for nonadiabatic dynamics.
 
 © Jiri Janos 2024
@@ -12,12 +13,77 @@
 # ///
 
 import argparse
-from os.path import exists
+from pathlib import Path
 from timeit import default_timer as timer
 
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+ENERGY_UNITS = ['a.u.', 'eV', 'nm', 'cm-1']
+TDM_UNITS = ['a.u.', 'debye']
+METHODS = ['pda', 'pdaw']
+ENVELOPE_TYPES = ['gauss', 'lorentz', 'sech', 'sin', 'sin2']
+NEG_PROB_HANDLING = ['error', 'ignore', 'abs']
+FILE_TYPES = ['file']
+
+DESC = "Promoted density approach for initial conditions"
+
+def print_header():
+    print(
+        "\n##########################################################\n"
+        f"###  {DESC}  ###\n"
+        "###                   * * * * *                        ###\n"
+        "###       version 1.0         Jiri Janos 2024          ###\n"
+        "##########################################################\n"
+    )
+
+def print_footer():
+    print(
+        '\nPromoted density approached calculation finished.'
+        '\n - "May the laser pulses be with you."\n'
+    )
+    print(
+        "       %.                                \n"
+        "        %.                    #%%%%%%%%  \n"
+        "         %.        %%        %%%%%%%%%%% \n"
+        "          %.    %%%%%       %%%%%%%%%%%% \n"
+        "           %  %%%%%%%%%    %%%%%%%%%%%%* \n"
+        "            %  %%%%%%%%%   %%%%%%%%%%%   \n"
+        "             %    %%%%%%%  %%%%%%%%      \n"
+        "              %%%%%%%%%%%  %%%%%%%       \n"
+        "              %%+%%%%%%%%% %%%%%%%       \n"
+        "                   %%%%%%% %%%%%%        \n"
+        "                %%%%%%%%%% %%%%%%        \n"
+        "                 %%%%%%%%%%%%%%%         \n"
+        "                %%%%%%%%%%%%%%           \n"
+        "                                           "
+    )
+
+def positive_int(str_value: str) -> int:
+    """Convert a string into a positive integer.
+
+    This is a helper type conversion function
+    for user input type checking by argparse, see:
+    https://docs.python.org/3/library/argparse.html#type
+
+    raises: ValueError if string is not a positive integer
+    """
+    val = int(str_value)
+    if val <= 0:
+        raise ValueError(f"'{val}' is not a positive integer")
+    return val
+
+
+def positive_float(str_value: str) -> float:
+    """Convert a string into a positive float.
+
+    raises: ValueError if string is not a positive real number
+    """
+    val = float(str_value)
+    if val <= 0:
+        raise ValueError(f"'{val}' is not a positive real number")
+    return val
 
 ### functions and classes ###
 class InitialConditions:
@@ -59,45 +125,41 @@ class InitialConditions:
         self.field_calculated = False
         self.maxwell_fulfilled = False
 
-    def read_input_data(self, fname='ics.dat'):
+    def read_input_data(self, fname):
         """
         Reading the input data: index of traj, excitation energies and magnitudes of transition dipole moments.
         :param fname: name of the input file
         :return: store all the data within the class
         """
         print(f"* Reading data from file '{fname}' of input file type '{self.input_type}'.")
-        if self.input_type == 'file':
-            try:
-                input = np.loadtxt(fname, dtype=float).T  # reading input file with numpy
-            except FileNotFoundError as err:
-                print(f"\nERROR: Input file '{fname}' not found!\n (Error: {err})")
-                exit(1)
-            except ValueError as err:
-                print(err)
-                print(f"\nERROR: Incorrect value type encountered in the input file '{fname}'!\n (Error: {err})")
-                exit(1)
-            except Exception as err:
-                print(f"\nERROR: Unexpected error: {err}, type: {type(err)}")
-                exit(1)
-
-            if np.shape(input)[0] < self.nstates*2 + 1:  # check enough columns provided in the file for required nstates
-                print(f"\nERROR: Not enough columns provided in the input file '{fname}'! "
-                      f"\nExpected {self.nstates*2 + 1} columns for {self.nstates} excited states.")
-                exit(1)
-
-            if self.nsamples == 0:  # use all samples loaded if user input nsamples is 0
-                self.nsamples = np.shape(input)[1]
-                print(f"  - Number of samples loaded from the input file: {self.nsamples}")
-            elif self.nsamples > np.shape(input)[1]:  # check if requested nsamples is not larger than provided in the input
-                print(f"  - Number of samples loaded from the input file {np.shape(input)[1]} instead of requested {self.nsamples}")
-                self.nsamples = np.shape(input)[1]
-
-            self.traj_index = np.array(input[0, :self.nsamples], dtype=int)  # saving indexes of trajectories
-            self.de = input[1:self.nstates*2:2, :self.nsamples]  # saving excitation energies
-            self.tdm = input[2:self.nstates*2 + 1:2, :self.nsamples]  # saving transition dipole moments
-        else:  # possible extension to other input file types
-            print(f"\nERROR: File type '{self.input_type}' not supported!")
+        try:
+            input = np.loadtxt(fname, dtype=float).T  # reading input file with numpy
+        except FileNotFoundError as err:
+            print(f"\nERROR: Input file '{fname}' not found!\n (Error: {err})")
             exit(1)
+        except ValueError as err:
+            print(err)
+            print(f"\nERROR: Incorrect value type encountered in the input file '{fname}'!\n (Error: {err})")
+            exit(1)
+        except Exception as err:
+            print(f"\nERROR: Unexpected error: {err}, type: {type(err)}")
+            exit(1)
+
+        if np.shape(input)[0] < self.nstates*2 + 1:  # check enough columns provided in the file for required nstates
+            print(f"\nERROR: Not enough columns provided in the input file '{fname}'! "
+                  f"\nExpected {self.nstates*2 + 1} columns for {self.nstates} excited states.")
+            exit(1)
+
+        if self.nsamples == 0:  # use all samples loaded if user input nsamples is 0
+            self.nsamples = np.shape(input)[1]
+            print(f"  - Number of samples loaded from the input file: {self.nsamples}")
+        elif self.nsamples > np.shape(input)[1]:  # check if requested nsamples is not larger than provided in the input
+            print(f"  - Number of samples loaded from the input file {np.shape(input)[1]} instead of requested {self.nsamples}")
+            self.nsamples = np.shape(input)[1]
+
+        self.traj_index = np.array(input[0, :self.nsamples], dtype=int)  # saving indexes of trajectories
+        self.de = input[1:self.nstates*2:2, :self.nsamples]  # saving excitation energies
+        self.tdm = input[2:self.nstates*2 + 1:2, :self.nsamples]  # saving transition dipole moments
 
         self.input_read = True
 
@@ -495,29 +557,29 @@ class InitialConditions:
         print("  - Weights saved to file 'pdaw.dat'.")
 
 ### setting up parser ###
-parser = argparse.ArgumentParser(description="Parser for this code", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("-m", "--method", default='pda', type=str,
+parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("-m", "--method", default='pda', choices=METHODS,
                     help="Select either Promoted density approach (PDA) to generate initial conditions with excitation times or "
-                         "PDA for windowing (PDAW) to generate weights and convolution parameters. Options: 'pda', 'pdaw'.")
-parser.add_argument("-n", "--nsamples", default=0, type=int,
-                    help="Number of data from the input file considered. 0 takes all initial conditions provided in the input file.")
-parser.add_argument("-np", "--npsamples", default=1000, type=int, help="Number of initial conditions generated with PDA.")
-parser.add_argument("-ns", "--nstates", default=1, type=int, help="Number of excited states considered.")
-parser.add_argument("-ft", "--file_type", default='file', help="Input file type. Options: 'file'.")
-parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results. Plots are saved as png images.")
-parser.add_argument("-eu", "--energy_units", default='a.u.', help="Units in which energies are provided. Options: 'a.u.', 'eV', 'nm', 'cm-1'. ")
-parser.add_argument("-tu", "--tdm_units", default='a.u.',
-                    help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided. Options: 'a.u.', 'debye'.")
-parser.add_argument("-w", "--omega", default=0.1, type=float, help="Frequency of the field in a.u.")
+                         "PDA for windowing (PDAW) to generate weights and convolution parameters.")
+parser.add_argument("-n", "--nsamples", default=0, type=positive_int,
+                    help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
+parser.add_argument("-np", "--npsamples", default=1000, type=positive_int, help="Number of initial conditions generated with PDA.")
+parser.add_argument("-ns", "--nstates", default=1, type=positive_int, help="Number of excited states considered.")
+parser.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
+parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results and save them as png images.")
+parser.add_argument("-eu", "--energy_units", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
+parser.add_argument("-tu", "--tdm_units", choices=TDM_UNITS, default='a.u.',
+                    help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
+parser.add_argument("-w", "--omega", required=True, type=positive_float, help="Frequency of the field in a.u.")
 parser.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
-parser.add_argument("-f", "--fwhm", default=10.0, type=float,
+parser.add_argument("-f", "--fwhm", required=True, type=positive_float,
                     help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
 parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
-parser.add_argument("-env", "--envelope_type", default='gauss', help="Field envelope type. Options: 'gauss', 'lorentz', 'sech', 'sin', 'sin2'.")
-parser.add_argument("-neg", "--neg_handling", default='error',
-                    help="Procedures how to handle negative probabilities. Options: 'error', 'ignore', 'abs'.")
-parser.add_argument("-s", "--seed", default=None, type=int,
-                    help="Seed for the random number generator. Default (None) generates random seed from OS.")
+parser.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
+parser.add_argument("-neg", "--neg_handling", choices=NEG_PROB_HANDLING, default='error',
+                    help="Procedures how to handle negative probabilities.")
+parser.add_argument("-s", "--seed", default=None, type=positive_int,
+                    help="Seed for the random number generator. Default: generate random seed from OS.")
 parser.add_argument("-ps", "--preselect", action="store_true",
                     help="Preselect samples within pulse spectrum for PDA. This option provides significant speed "
                          "up if the pulse spectrum covers only small part of the absorption spectrum as it avoids expensive "
@@ -526,20 +588,18 @@ parser.add_argument("-ps", "--preselect", action="store_true",
 parser.add_argument("input_file", help="Input file name.")
 
 ### entering code ###
-print("\n##########################################################\n"
-      "###  Promoted density approach for initial conditions  ###\n"
-      "###                   * * * * *                        ###\n"
-      "###       version 1.0         Jiri Janos 2024          ###\n"
-      "##########################################################\n")
-
-# parsing the input and printing it
-print("* Parsing the input.")
+# Parse the input and print it
 config = vars(parser.parse_args())
+
+print_header()
+
+print("* Input parameters:")
 for item in config:
     add = ''
     if item == 'nsamples' and config[item] == 0:
         add = '(All input data will be used)'
     print(f"  - {item:20s}: {config[item]}   {add}")
+print()
 
 # storing input into variables used in the code
 method = config['method']
@@ -566,44 +626,8 @@ t0 *= fstoau
 fwhm *= fstoau
 
 # checking input
-if method not in ['pda', 'pdaw']:
-    print(f"\nERROR: '{method}' is not available method!")
-    exit(1)
-
-if energy_units not in ['a.u.', 'eV', 'nm', 'cm-1']:
-    print(f"\nERROR: '{energy_units}' is not available unit for energy!")
-    exit(1)
-
-if tdm_units not in ['a.u.', 'debye']:
-    print(f"\nERROR: '{tdm_units}' is not available unit for transition dipole moment!")
-    exit(1)
-
-if ftype not in ['file']:
-    print(f"\nERROR: '{ftype}' is not available file type!")
-    exit(1)
-
-if envelope_type not in ['gauss', 'lorentz', 'sech', 'sin', 'sin2']:
-    print(f"\nERROR: '{envelope_type}' is not available envelope type!")
-    exit(1)
-
-if neg_handling not in ['error', 'ignore', 'abs']:
-    print(f"\nERROR: '{neg_handling}' is not an available option for handling negative probabilities!")
-    exit(1)
-
-if not exists(fname):
-    print(f"\nERROR: file '{fname}' not found!")
-    exit(1)
-
-if nsamples < 0:
-    print(f"\nERROR: nsamples is smaller than 0 ({nsamples})!")
-    exit(1)
-
-if new_nsamples <= 0:
-    print(f"\nERROR: npsamples is smaller than 0 ({new_nsamples})!")
-    exit(1)
-
-if nstates <= 0:
-    print(f"\nERROR: invalid number of excited states (nstates={nstates})!")
+if not Path(fname).is_file():
+    print(f"ERROR: file '{fname}' not found!")
     exit(1)
 
 ### code ###
@@ -832,20 +856,4 @@ elif method == 'pdaw':
         plt.savefig('pdaw', dpi=300)
         plt.show()
 
-print('\nPromoted density approached calculation finished.'
-      '\n - "May the laser pulses be with you."\n')
-print("                                         \n"
-      "       %.                                \n"
-      "        %.                    #%%%%%%%%  \n"
-      "         %.        %%        %%%%%%%%%%% \n"
-      "          %.    %%%%%       %%%%%%%%%%%% \n"
-      "           %  %%%%%%%%%    %%%%%%%%%%%%* \n"
-      "            %  %%%%%%%%%   %%%%%%%%%%%   \n"
-      "             %    %%%%%%%  %%%%%%%%      \n"
-      "              %%%%%%%%%%%  %%%%%%%       \n"
-      "              %%+%%%%%%%%% %%%%%%%       \n"
-      "                   %%%%%%% %%%%%%        \n"
-      "                %%%%%%%%%% %%%%%%        \n"
-      "                 %%%%%%%%%%%%%%%         \n"
-      "                %%%%%%%%%%%%%%           \n"
-      "                                           ")
+print_footer()
