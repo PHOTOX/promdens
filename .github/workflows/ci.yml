@@ -30,5 +30,8 @@ jobs:
     - name: Set up uv
       run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
 
-    - name: Basic smoke test
-      run: uv run promdens.py --help
+    - name: Basic smoke tests
+      run: |
+        uv run promdens.py --help
+        uv run promdens.py --omega 0.2 --fwhm 5.0 -ns 3 -eu "eV" --npsamples 5 tests/test_data.txt
+        uv run promdens.py --plot --method=pdaw --omega 0.2 --fwhm 5.0 -ns 3 -eu "eV" --npsamples 5 tests/test_data.txt
