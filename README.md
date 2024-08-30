@@ -5,7 +5,7 @@ The code is constructed as a standalone Python script, requiring only basic Pyth
 In the future, the authors plan to turn the script into a Python library that can be downloaded via the pip command and integrated to other codes. 
 
 ### Necessary python libraries
-The code was developed with `Python 3.9` yet we expect the code to work with any version of `Python3`. Follow the necessary python libraries and version that were used in development:
+The code was tested with Python 3.7 and higher. The necessary python libraries and their version that were used in development:
 * `argparse`
 * `os`
 * `numpy (1.26.2)`
