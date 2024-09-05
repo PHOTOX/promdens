@@ -117,12 +117,11 @@ class InitialConditions:
         self.input_type = input_type
         # flags for checking that everything was calculated in the right order
         self.input_read = False
-        self.units_converted = False
         self.spectrum_calculated = False
         self.field_calculated = False
         self.maxwell_fulfilled = False
 
-    def read_input_data(self, fname):
+    def read_input_data(self, fname: str, energy_unit: str, tdm_unit: str) -> None:
         """
         Reading the input data: index of traj, excitation energies and magnitudes of transition dipole moments.
         :param fname: name of the input file
@@ -158,27 +157,27 @@ class InitialConditions:
         self.de = input[1:self.nstates*2:2, :self.nsamples]  # saving excitation energies
         self.tdm = input[2:self.nstates*2 + 1:2, :self.nsamples]  # saving transition dipole moments
 
+        self.convert_units(energy_unit=energy_unit, tdm_unit=tdm_unit)
+
         self.input_read = True
 
-    def convert_units(self, energy_units, tdm_units):
+    def convert_units(self, energy_unit: str, tdm_unit: str) -> None:
         """
-        Converting all the data into atomic units which are used throughout the code.
-        :param energy_units: energy units on the input
-        :param tdm_units: units of transition dipole moments on the input
-        :return: store data converted to atomic units
+        Convert all the data into atomic units which are used throughout the code.
+
+        :param energy_unit: energy unit on the input
+        :param tdm_unit: unit of transition dipole moments on the input
         """
         print("* Converting units.")
-        if energy_units == 'eV':
+        if energy_unit == 'eV':
             self.de *= self.evtoau
-        elif energy_units == 'nm':
+        elif energy_unit == 'nm':
             self.de *= self.nmtoau
-        elif energy_units == 'cm-1':
+        elif energy_unit == 'cm-1':
             self.de *= self.cm1toau
 
-        if tdm_units == 'Debye':
+        if tdm_unit == 'Debye':
             self.tdm *= self.debtoau
-
-        self.units_converted = True
 
     def calc_spectrum(self):
         """
@@ -202,9 +201,6 @@ class InitialConditions:
         # checking if all the necessary preceding calculations were executed
         if not self.input_read:
             print("ERROR: Field yet not calculated. Please first use 'calc_field()'!")
-            exit(1)
-        elif not self.units_converted:
-            print("ERROR: Units not converted yet. Please first use 'convert_units()'!")
             exit(1)
 
         # calculating coefficient for intensity of the spectrum
@@ -391,9 +387,6 @@ class InitialConditions:
         if not self.input_read:
             print("\nERROR: Field yet not calculated. Please first use 'calc_field()'!")
             exit(1)
-        elif not self.units_converted:
-            print("\nERROR: Units not converted yet. Please first use 'convert_units()'!")
-            exit(1)
 
         def progress(percent, width, n, str=''):
             """Function to print progress of calculation."""
@@ -563,8 +556,8 @@ parser.add_argument("-n", "--nsamples", default=0, type=positive_int,
                     help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
 parser.add_argument("-np", "--npsamples", default=1000, type=positive_int, help="Number of initial conditions generated with PDA.")
 parser.add_argument("-ns", "--nstates", default=1, type=positive_int, help="Number of excited states considered.")
-parser.add_argument("-eu", "--energy_units", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
-parser.add_argument("-tu", "--tdm_units", choices=TDM_UNITS, default='a.u.',
+parser.add_argument("-eu", "--energy_unit", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
+parser.add_argument("-tu", "--tdm_unit", choices=TDM_UNITS, default='a.u.',
                     help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
 parser.add_argument("-w", "--omega", required=True, type=positive_float, help="Frequency of the field in a.u.")
 parser.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
@@ -605,8 +598,8 @@ nsamples = config['nsamples']
 new_nsamples = config['npsamples']
 nstates = config['nstates']
 plotting = config['plot']
-energy_units = config['energy_units']
-tdm_units = config['tdm_units']
+energy_unit = config['energy_unit']
+tdm_unit = config['tdm_unit']
 fwhm = config['fwhm']
 omega = config['omega']
 lchirp = config['linear_chirp']
@@ -633,10 +626,7 @@ if not Path(fname).is_file():
 ics = InitialConditions(nsamples=nsamples, nstates=nstates, input_type=ftype)
 
 # reading input data
-ics.read_input_data(fname=fname)
-
-# converting energy and tdm units to atomic units
-ics.convert_units(energy_units=energy_units, tdm_units=tdm_units)
+ics.read_input_data(fname=fname, energy_unit=energy_unit, tdm_unit=tdm_unit)
 
 # calculating spectrum with nuclear ensemble approach
 ics.calc_spectrum()
