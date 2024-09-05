@@ -16,7 +16,6 @@ import argparse
 from pathlib import Path
 from timeit import default_timer as timer
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 ENERGY_UNITS = ['a.u.', 'eV', 'nm', 'cm-1']
@@ -556,6 +555,8 @@ class InitialConditions:
 
 
 def plot_spectrum(ics: InitialConditions) -> None:
+    import matplotlib.pyplot as plt
+
     print("  - Plotting UV/vis absorption spectrum")
     colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
     if ics.nstates > 1:
@@ -607,6 +608,8 @@ def plot_spectrum(ics: InitialConditions) -> None:
 
 
 def plot_field(ics: InitialConditions) -> None:
+    import matplotlib.pyplot as plt
+
     print("  - Plotting pulse characteristics")
     colors = plt.cm.viridis([0.35, 0.6, 0.0])
     fig, axs = plt.subplots(1, 2, figsize=(8, 3.5))
@@ -672,6 +675,8 @@ def plot_field(ics: InitialConditions) -> None:
 
 
 def plot_pda(ics: InitialConditions) -> None:
+    import matplotlib.pyplot as plt
+
     print("  - Plotting PDA initial conditions")
     colors = plt.cm.viridis([0.35, 0.6])
     fig = plt.figure(figsize=(6, 6))
@@ -724,6 +729,8 @@ def plot_pda(ics: InitialConditions) -> None:
 
 
 def plot_pdaw(ics: InitialConditions) -> None:
+    import matplotlib.pyplot as plt
+
     print("  - Plotting PDAW weights")
     colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
     if ics.nstates > 1:
