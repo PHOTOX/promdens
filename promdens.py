@@ -82,7 +82,7 @@ def positive_float(str_value: str) -> float:
         raise ValueError(f"'{val}' is not a positive real number")
     return val
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class FieldParams:
     envelope: str
     omega: float
@@ -97,20 +97,25 @@ class FieldParams:
 
         if self.envelope == 'gauss':
             self.equation = "exp(-2*ln(2)*(t-t0)^2/fwhm^2)*cos((omega+lchirp*t)*t)"
-            self.tmin, self.tmax = self.t0 - 2.4*self.fwhm, self.t0 + 2.4*self.fwhm
+            self.tmin = self.t0 - 2.4 * self.fwhm
+            self.tmax = self.t0 + 2.4 * self.fwhm
         elif self.envelope == 'lorentz':
             self.equation = "(1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+lchirp*t)*t)"
-            self.tmin, self.tmax = self.t0 - 8*self.fwhm, self.t0 + 8*self.fwhm
+            self.tmin, = self.t0 - 8 * self.fwhm
+            self.tmax = self.t0 + 8 * self.fwhm
         elif self.envelope == 'sech':
             self.equation = "sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+lchirp*t)*t)"
-            self.tmin, self.tmax = self.t0 - 4.4*self.fwhm, self.t0 + 4.4*self.fwhm
+            self.tmin = self.t0 - 4.4 * self.fwhm
+            self.tmax = self.t0 + 4.4*self.fwhm
         elif self.envelope == 'sin':
             self.equation = "sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+lchirp*t)*t) in range [t0-fwhm,t0+fwhm]"
-            self.tmin, self.tmax = self.t0 - self.fwhm, self.t0 + self.fwhm
+            self.tmin = self.t0 - self.fwhm
+            self.tmax = self.t0 + self.fwhm
         elif self.envelope == 'sin2':
             self.equation = "sin(pi/2*(t-t0+T)/T)^2*cos((omega+lchirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm"
             T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4))) * self.fwhm
-            self.tmin, self.tmax = self.t0 - T, self.t0 + T
+            self.tmin = self.t0 - T
+            self.tmax = self.t0 + T
 
 
 class InitialConditions:
@@ -138,6 +143,8 @@ class InitialConditions:
     def __init__(self, nsamples=0, nstates=1, input_type='file'):
         """
         Initialization of the class.
+
+        :param field_params: dataclass containing parameters characterizing the field.
         :param nsamples: number of inputed samples (position-momentum pairs), if set 0 then maximum number provided will be taken
         :param nstates: number of excited states considered in the calculation
         :param input_type: input file type, currently only 'file'; possible extensions to other sampling codes
@@ -145,11 +152,6 @@ class InitialConditions:
         self.nsamples = nsamples
         self.nstates = nstates
         self.input_type = input_type
-        # flags for checking that everything was calculated in the right order
-        self.input_read = False
-        self.spectrum_calculated = False
-        self.field_calculated = False
-        self.maxwell_fulfilled = False
 
     def read_input_data(self, fname: str, energy_unit: str, tdm_unit: str) -> None:
         """
@@ -189,8 +191,6 @@ class InitialConditions:
 
         # converting energy and tdm units to a.u.
         self.convert_units(energy_unit=energy_unit, tdm_unit=tdm_unit)
-
-        self.input_read = True
 
     def convert_units(self, energy_unit: str, tdm_unit: str) -> None:
         """
@@ -235,11 +235,6 @@ class InitialConditions:
 
         print("* Calculating spectrum with the Nuclear Ensemble Approach.")
 
-        # checking if all the necessary preceding calculations were executed
-        if not self.input_read:
-            print("ERROR: Input hasn't been read yet. Please first use 'read_input_data()'!")
-            exit(1)
-
         # calculating coefficient for intensity of the spectrum
         eps0 = 8.854188e-12
         hbar = 6.626070e-34/(2*np.pi)
@@ -262,8 +257,6 @@ class InitialConditions:
 
         # calculating total spectrum (summing over all states)
         self.spectrum[-1] = np.sum(self.spectrum[1:-1], axis=0)
-
-        self.spectrum_calculated = True
 
     def calc_field_envelope(self, t):
         """
@@ -317,35 +310,20 @@ class InitialConditions:
         envelope_type = field_params.envelope
         omega = field_params.omega
         fwhm = field_params.fwhm
-        t0 = field_params.t0
         print(
-            f"* Calculating laser pulse field with:\n"
+            f"* Calculating laser pulse field with parameters:\n"
             f"\tenvelope type '{envelope_type}'\n"
-            f"\tomega={omega:.6f} a.u.\n"
-            f"\tfwhm={field_params.fwhm:.6f} a.u.\n"
-            f"\tt0={field_params.t0:.6f} a.u.\n"
-            f"\tlchirp={field_params.lchirp:.3e} a.u."
+            f"\tomega = {omega:.6f} a.u.\n"
+            f"\tFWHM = {field_params.fwhm:.6f} a.u.\n"
+            f"\tt0 = {field_params.t0:.6f} a.u.\n"
+            f"\tchirp = {field_params.lchirp:.3e} a.u."
         )
 
         # print field function and determine maximum and minimum times for the field
-        if envelope_type == 'gauss':
-            print("  - E(t) = exp(-2*ln(2)*(t-t0)^2/fwhm^2)*cos((omega+lchirp*t)*t)")
-            self.tmin, self.tmax = t0 - 2.4*fwhm, t0 + 2.4*fwhm
-        elif envelope_type == 'lorentz':
-            print("  - E(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+lchirp*t)*t)")
-            self.tmin, self.tmax = t0 - 8*fwhm, t0 + 8*fwhm
-        elif envelope_type == 'sech':
-            print("  - E(t) = sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+lchirp*t)*t)")
-            self.tmin, self.tmax = t0 - 4.4*fwhm, t0 + 4.4*fwhm
-        elif envelope_type == 'sin':
-            print("  - E(t) = sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+lchirp*t)*t) in range [t0-fwhm,t0+fwhm]")
-            self.tmin, self.tmax = t0 - fwhm, t0 + fwhm
-        elif envelope_type == 'sin2':
-            print("  - E(t) = sin(pi/2*(t-t0+T)/T)^2*cos((omega+lchirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm")
-            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4))) * fwhm
-            self.tmin, self.tmax = t0 - T, t0 + T
+        print(f"  - E(t) = {field_params.equation}\n")
+        self.tmin, self.tmax = field_params.tmin, field_params.tmax
 
-        # calculating the field
+        # calculate the field
         self.field_t = np.arange(self.tmin, self.tmax, 2*np.pi/omega/50)  # time array for the field in a.u.
         self.field_envelope = self.calc_field_envelope(self.field_t)
         self.field = self.field_envelope*self.field_cos(self.field_t)
@@ -374,8 +352,6 @@ class InitialConditions:
             print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
             self.maxwell_fulfilled = True
 
-        self.field_calculated = True
-
     def pulse_wigner(self, tprime, de):
         """
         Wigner transform of the pulse. The current implementation uses the pulse envelope formulation to simplify calculations.
@@ -385,10 +361,6 @@ class InitialConditions:
         :param de: excitation energy (a.u.)
         :return: Wigner pulse transform
         """
-
-        if not self.field_calculated:
-            print("ERROR: Field not yet calculated. Please first use 'calc_field()'!")
-            exit(1)
 
         # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
         loc_omega = self.field_params.omega + 2*self.field_params.lchirp*tprime
@@ -430,10 +402,6 @@ class InitialConditions:
         """
 
         print(f"* Sampling {nsamples_ic:d} initial conditions considering the laser pulse.")
-
-        if not self.input_read:
-            print("ERROR: Input hasn't been read yet. Please first use 'read_input_data()'!")
-            exit(1)
 
         def progress(percent, width, n, str=''):
             """Function to print progress of calculation."""
