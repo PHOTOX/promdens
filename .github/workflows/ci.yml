@@ -32,5 +32,5 @@ jobs:
     - name: Basic smoke tests
       run: |
         uv run promdens.py --help
-        uv run promdens.py --omega 0.2 --fwhm 5.0 -ns 3 -eu "eV" --npsamples 5 tests/test_data.txt
-        uv run promdens.py --plot --method=pdaw --omega 0.2 --fwhm 5.0 -ns 3 -eu "eV" --npsamples 5 tests/test_data.txt
+        uv run promdens.py --plot --omega 0.2 --fwhm 5.0 -lch 0.001 -ns 3 -eu "eV" --npsamples 5 tests/test_data.txt
+        uv run promdens.py --plot --method=pdaw -lch 0.001 --omega 0.2 --fwhm 5.0 -ns 3 -eu "eV" --npsamples 5 tests/test_data.txt
