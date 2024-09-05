@@ -13,7 +13,7 @@
 # ///
 
 import argparse
-from dataclasses import dataclass
+import dataclasses
 from pathlib import Path
 from timeit import default_timer as timer
 
@@ -82,13 +82,35 @@ def positive_float(str_value: str) -> float:
         raise ValueError(f"'{val}' is not a positive real number")
     return val
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class FieldParams:
     envelope: str
     omega: float
     fwhm: float
     t0: float
     lchirp: float
+    equation: str = dataclasses.field(init=False)
+    tmin: float = dataclasses.field(init=False)
+    tmax: float = dataclasses.field(init=False)
+    
+    def __post_init__(self):
+
+        if self.envelope == 'gauss':
+            self.equation = "exp(-2*ln(2)*(t-t0)^2/fwhm^2)*cos((omega+lchirp*t)*t)"
+            self.tmin, self.tmax = self.t0 - 2.4*self.fwhm, self.t0 + 2.4*self.fwhm
+        elif self.envelope == 'lorentz':
+            self.equation = "(1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+lchirp*t)*t)"
+            self.tmin, self.tmax = self.t0 - 8*self.fwhm, self.t0 + 8*self.fwhm
+        elif self.envelope == 'sech':
+            self.equation = "sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+lchirp*t)*t)"
+            self.tmin, self.tmax = self.t0 - 4.4*self.fwhm, self.t0 + 4.4*self.fwhm
+        elif self.envelope == 'sin':
+            self.equation = "sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+lchirp*t)*t) in range [t0-fwhm,t0+fwhm]"
+            self.tmin, self.tmax = self.t0 - self.fwhm, self.t0 + self.fwhm
+        elif self.envelope == 'sin2':
+            self.equation = "sin(pi/2*(t-t0+T)/T)^2*cos((omega+lchirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm"
+            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4))) * self.fwhm
+            self.tmin, self.tmax = self.t0 - T, self.t0 + T
 
 
 class InitialConditions:
