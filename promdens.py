@@ -13,6 +13,7 @@
 # ///
 
 import argparse
+from dataclasses import dataclass
 from pathlib import Path
 from timeit import default_timer as timer
 
@@ -80,6 +81,14 @@ def positive_float(str_value: str) -> float:
     if val <= 0:
         raise ValueError(f"'{val}' is not a positive real number")
     return val
+
+@dataclass(frozen=True)
+class FieldParams:
+    envelope: str
+    omega: float
+    fwhm: float
+    t0: float
+    lchirp: float
 
 
 class InitialConditions:
@@ -240,24 +249,28 @@ class InitialConditions:
         :param t: time axis (a.u.)
         :return: envelope of the field
         """
-        if self.field_envelope_type == 'gauss':
-            return np.exp(-2*np.log(2)*(t - self.field_t0)**2/self.field_fwhm**2)
-        elif self.field_envelope_type == 'lorentz':
-            return (1 + 4/(1 + np.sqrt(2))*((t - self.field_t0)/self.field_fwhm)**2)**-1
-        elif self.field_envelope_type == 'sech':
-            return 1/np.cosh(2*np.log(1 + np.sqrt(2))*(t - self.field_t0)/self.field_fwhm)
-        elif self.field_envelope_type == 'sin':
+        envelope_type = self.field_params.envelope
+        t0 = self.field_params.t0
+        fwhm= self.field_params.fwhm
+
+        if envelope_type == 'gauss':
+            return np.exp(-2*np.log(2)*(t - t0)**2/fwhm**2)
+        elif envelope_type == 'lorentz':
+            return (1 + 4/(1 + np.sqrt(2))*((t - t0)/fwhm)**2)**-1
+        elif envelope_type == 'sech':
+            return 1/np.cosh(2*np.log(1 + np.sqrt(2))*(t - t)/fwhm)
+        elif envelope_type == 'sin':
             field = np.zeros(shape=np.shape(t))
             for k in range(np.shape(t)[0]):
                 if t[k] >= self.tmin and t[k] <= self.tmax:
-                    field[k] = np.sin(np.pi/2*(t[k] - self.field_t0 + self.field_fwhm)/self.field_fwhm)
+                    field[k] = np.sin(np.pi/2*(t[k] - t0 + fwhm)/fwhm)
             return field
-        elif self.field_envelope_type == 'sin2':
-            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4)))*self.field_fwhm
+        elif envelope_type == 'sin2':
+            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4))) * fwhm
             field = np.zeros(shape=np.shape(t))
             for k in range(np.shape(t)[0]):
                 if t[k] >= self.tmin and t[k] <= self.tmax:
-                    field[k] = np.sin(np.pi/2*(t[k] - self.field_t0 + T)/T)**2
+                    field[k] = np.sin(np.pi/2*(t[k] - t0 + T)/T)**2
             return field
 
     def field_cos(self, t):
@@ -266,45 +279,49 @@ class InitialConditions:
         :param t: time
         :return: cos((w + lchirp*t)*t)
         """
-        return np.cos((self.field_omega + self.field_lchirp*t)*t)
+        omega = self.field_params.omega
+        lchirp = self.field_params.lchirp
+        return np.cos( (omega + lchirp * t) * t)
 
-    def calc_field(self, omega, fwhm, t0=0.0, lchirp=0.0, envelope_type='gauss'):
+    def calc_field(self, field_params: FieldParams):
         """
-        Calculating electric field E(t) and its spectrum E(w) with Fourier transform.
-        :param omega: frequency of the field (a.u.)
-        :param fwhm: full width at half maximum of the intensity envelope (a.u.)
-        :param t0: centre of the envelope in time (a.u.)
-        :param lchirp: linear chirp parameter [w = lchirp*t + omega] (a.u.)
-        :param envelope_type: envelope types: Gaussian, Lorentzian, sech, sin, sin^2
+        Calculate electric field E(t) and its spectrum E(w) with Fourier transform.
+
+        :param field_params: Field parameters dataclass
         :return: store the electric field and the pulse spectrum
         """
 
-        print(f"* Calculating laser pulse field using envelope type '{envelope_type}', omega={omega:.6f} a.u.,"
-              f" fwhm={fwhm:.6f} a.u., t0={t0:.6f} a.u., lchirp={lchirp:.3e} a.u.")
-        # saving field parameters in the class
-        self.field_omega = omega
-        self.field_lchirp = lchirp
-        self.field_envelope_type = envelope_type
-        self.field_t0 = t0
-        self.field_fwhm = fwhm
+        self.field_params = field_params
+        envelope_type = field_params.envelope
+        omega = field_params.omega
+        fwhm = field_params.fwhm
+        t0 = field_params.t0
+        print(
+            f"* Calculating laser pulse field with:\n"
+            f"\tenvelope type '{envelope_type}'\n"
+            f"\tomega={omega:.6f} a.u.\n"
+            f"\tfwhm={field_params.fwhm:.6f} a.u.\n"
+            f"\tt0={field_params.t0:.6f} a.u.\n"
+            f"\tlchirp={field_params.lchirp:.3e} a.u."
+        )
 
         # print field function and determine maximum and minimum times for the field
-        if self.field_envelope_type == 'gauss':
+        if envelope_type == 'gauss':
             print("  - E(t) = exp(-2*ln(2)*(t-t0)^2/fwhm^2)*cos((omega+lchirp*t)*t)")
-            self.tmin, self.tmax = self.field_t0 - 2.4*self.field_fwhm, self.field_t0 + 2.4*self.field_fwhm
-        elif self.field_envelope_type == 'lorentz':
+            self.tmin, self.tmax = t0 - 2.4*fwhm, t0 + 2.4*fwhm
+        elif envelope_type == 'lorentz':
             print("  - E(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+lchirp*t)*t)")
-            self.tmin, self.tmax = self.field_t0 - 8*self.field_fwhm, self.field_t0 + 8*self.field_fwhm
-        elif self.field_envelope_type == 'sech':
+            self.tmin, self.tmax = t0 - 8*fwhm, t0 + 8*fwhm
+        elif envelope_type == 'sech':
             print("  - E(t) = sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+lchirp*t)*t)")
-            self.tmin, self.tmax = self.field_t0 - 4.4*self.field_fwhm, self.field_t0 + 4.4*self.field_fwhm
-        elif self.field_envelope_type == 'sin':
+            self.tmin, self.tmax = t0 - 4.4*fwhm, t0 + 4.4*fwhm
+        elif envelope_type == 'sin':
             print("  - E(t) = sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+lchirp*t)*t) in range [t0-fwhm,t0+fwhm]")
-            self.tmin, self.tmax = self.field_t0 - self.field_fwhm, self.field_t0 + self.field_fwhm
-        elif self.field_envelope_type == 'sin2':
+            self.tmin, self.tmax = t0 - fwhm, t0 + fwhm
+        elif envelope_type == 'sin2':
             print("  - E(t) = sin(pi/2*(t-t0+T)/T)^2*cos((omega+lchirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm")
-            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4)))*self.field_fwhm
-            self.tmin, self.tmax = self.field_t0 - T, self.field_t0 + T
+            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4))) * fwhm
+            self.tmin, self.tmax = t0 - T, t0 + T
 
         # calculating the field
         self.field_t = np.arange(self.tmin, self.tmax, 2*np.pi/omega/50)  # time array for the field in a.u.
@@ -313,7 +330,8 @@ class InitialConditions:
 
         # calculating the FT of the field (pulse spectrum)
         dt = 2*np.pi/omega/50
-        t_ft = np.arange(self.tmin - 20*self.field_fwhm, self.tmax + 20*self.field_fwhm, dt)  # setting up new time array with denser points for FT
+        # setting up new time array with denser points for FT
+        t_ft = np.arange(self.tmin - 20*fwhm, self.tmax + 20*fwhm, dt)
         field = self.calc_field_envelope(t_ft)*self.field_cos(t_ft)
         self.field_ft = np.abs(np.fft.rfft(field))  # FT
         self.field_ft /= np.max(self.field_ft)  # normalizing to have maximum at 0
@@ -351,31 +369,31 @@ class InitialConditions:
             exit(1)
 
         # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
-        loc_omega = self.field_omega + 2*self.field_lchirp*tprime
+        loc_omega = self.field_params.omega + 2*self.field_params.lchirp*tprime
         if de != loc_omega:
             T = 2*np.pi/(np.min([np.abs(de - loc_omega), loc_omega]))
         else:  # in case they are equal, there are no phase oscillations and we integrate only the envelope intensity
             T = 2*np.pi/loc_omega
-        ds = np.min([T/50, self.field_fwhm/500])  # time step for integration
+        ds = np.min([T/50, self.field_params.fwhm / 500])  # time step for integration
 
         # integration ranges for different pulse envelopes
         # ideally, we would integrate from -infinity to infinity, yet this is not very computationally efficient
         # empirically, it was found out that efficient integration varies for different pulses
         # analytic formulas should be implemented in the future to avoid that
-        if self.field_envelope_type == 'gauss':
+        if self.field_params.envelope == 'gauss':
             factor = 7.5
-        elif self.field_envelope_type == 'lorentz':
+        elif self.field_envelope == 'lorentz':
             factor = 50
-        elif self.field_envelope_type == 'sech':
+        elif self.field_params.envelope == 'sech':
             factor = 20
-        elif self.field_envelope_type == 'sin':
+        elif self.field_params.envelope_type == 'sin':
             factor = 3
-        elif self.field_envelope_type == 'sin2':
+        elif self.field_params.envelope_type == 'sin2':
             factor = 4
 
         # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
         # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
-        s = np.arange(0, factor*self.field_fwhm, step=ds)
+        s = np.arange(0, factor*self.field_params.fwhm, step=ds)
         cos = np.cos((de/self.hbar - loc_omega)*s)
         integral = np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
         # the factor 2 was omitted as the Wigner transform is always normalized
@@ -408,7 +426,7 @@ class InitialConditions:
         rnd_max = (
             np.max(self.tdm**2)
             * self.pulse_wigner(
-                self.field_t0, de=self.field_omega + self.field_lchirp * self.field_t0
+                self.field_params.t0, de=self.field_params.omega + self.field_params.lchirp * self.field_params.t0
             )
             * 1.01
         )
@@ -499,9 +517,9 @@ class InitialConditions:
         # save the selected samples
         np.savetxt('pda.dat', samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'],
                    header=f"Sampling: number of ICs = {nsamples_ic:d}, number of unique ICs = {np.sum(unique_states):d}\n"
-                          f"Field parameters: omega = {self.field_omega:.5e} a.u., "
-                          f"linear_chirp = {self.field_lchirp:.5e} a.u., fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
-                          f"t0 = {self.field_t0/self.fstoau:.3f} fs, envelope type = '{self.field_envelope_type}'\n"
+                          f"Field parameters: omega = {self.field_params.omega:.5e} a.u., "
+                          f"linear_chirp = {self.field_params.lchirp:.5e} a.u., fwhm = {self.field_params.fwhm/self.fstoau:.3f} fs, "
+                          f"t0 = {self.field_params.t0/self.fstoau:.3f} fs, envelope type = '{self.field_params.envelope}'\n"
                           f"index        exc. time (a.u.)   el. state     dE (a.u.)       |tdm| (a.u.)")
         print("  - Output saved to file 'pda.dat'.")
 
@@ -516,18 +534,18 @@ class InitialConditions:
         print("* Generating weights and convolution for windowing.")
 
         # determine and print convolution function
-        if self.field_envelope_type == 'gauss':
+        if self.field_params.envelope == 'gauss':
             self.conv = "I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)"
-        elif self.field_envelope_type == 'lorentz':
+        elif self.field_params.envelope == 'lorentz':
             self.conv = "I(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-2"
-        elif self.field_envelope_type == 'sech':
+        elif self.field_params.envelope == 'sech':
             self.conv = "I(t) = sech(2*ln(1+sqrt(2))*t/fwhm)^2"
-        elif self.field_envelope_type == 'sin':
+        elif self.field_params.envelope == 'sin':
             self.conv = "I(t) = sin(pi/2*(t-t0+fwhm)/fwhm)^2 in range [t0-fwhm,t0+fwhm]"
-        elif self.field_envelope_type == 'sin2':
+        elif self.field_params.envelope == 'sin2':
             self.conv = "I(t) = sin(pi/2*(t-t0+T)/T)^4 in range [t0-T,t0+T] where T=1.373412575*fwhm"
-        print(f"  - Convolution: {self.conv}\n  - Parameters:  fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
-              f"t0 = {self.field_t0/self.fstoau:.3f} fs)")
+        print(f"  - Convolution: {self.conv}\n  - Parameters:  fwhm = {self.field_params.fwhm/self.fstoau:.3f} fs, "
+              f"t0 = {self.field_params.t0/self.fstoau:.3f} fs)")
 
         print("  - Calculating normalized weights:")
         # creating a field for weights
@@ -553,8 +571,8 @@ class InitialConditions:
         arr_print[1:, :] = self.weights
 
         np.savetxt('pdaw.dat', arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates,
-                   header=f"Convolution: '{self.conv}'\nParameters:  fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
-                          f"t0 = {self.field_t0/self.fstoau:.3f} fs\n"
+                   header=f"Convolution: '{self.conv}'\nParameters:  fwhm = {self.field_params.fwhm/self.fstoau:.3f} fs, "
+                          f"t0 = {self.field_params.t0/self.fstoau:.3f} fs\n"
                           f"index        " + str(' '*8).join([f"weight S{s + 1:d}" for s in range(self.nstates)]))
 
         print("  - Weights saved to file 'pdaw.dat'.")
@@ -709,9 +727,9 @@ def plot_pda(ics: InitialConditions) -> None:
         cmap=plt.cm.viridis,
         density=True,
     )
-    if ics.field_lchirp != 0:
+    if ics.field_params.lchirp != 0:
         axs.plot(
-            (ics.field_omega + 2 * ics.field_lchirp * ics.field_t) / ics.evtoau,
+            (ics.field_params.omega + 2 * ics.field_params.lchirp * ics.field_t) / ics.evtoau,
             ics.field_t / ics.fstoau,
             color="white",
             linestyle="--",
@@ -800,12 +818,15 @@ def parse_cmd_args():
     parser.add_argument("-eu", "--energy_unit", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
     parser.add_argument("-tu", "--tdm_unit", choices=TDM_UNITS, default='a.u.',
                     help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
-    parser.add_argument("-w", "--omega", required=True, type=positive_float, help="Frequency of the field in a.u.")
-    parser.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
-    parser.add_argument("-f", "--fwhm", required=True, type=positive_float,
+
+    field = parser.add_argument_group('Field parameters')
+    field.add_argument("-w", "--omega", required=True, type=positive_float, help="Frequency of the field in a.u.")
+    field.add_argument("-f", "--fwhm", required=True, type=positive_float,
                     help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
-    parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
-    parser.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
+    field.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
+    field.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
+    field.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
+
     parser.add_argument("-neg", "--neg_handling", choices=NEG_PROB_HANDLING, default='error', help="Procedures how to handle negative probabilities.")
     parser.add_argument("-s", "--random_seed", default=None, type=positive_int,
                     help="Seed for the random number generator. Default: generate random seed from OS.")
@@ -840,26 +861,26 @@ def main():
     plotting = config['plot']
     energy_unit = config['energy_unit']
     tdm_unit = config['tdm_unit']
-    fwhm = config['fwhm']
-    omega = config['omega']
-    lchirp = config['linear_chirp']
-    t0 = config['t0']
-    envelope_type = config['envelope_type']
     neg_handling = config['neg_handling']
     preselect = config['preselect']
     seed = config['random_seed']
     ftype = config['file_type']
     fname = config['input_file']
 
+    # convert pulse input to atomic units
+    fstoau = 41.341374575751
+    field = FieldParams(
+        omega=config["omega"],
+        fwhm=config["fwhm"]*fstoau,
+        lchirp=config["linear_chirp"],
+        t0=config["t0"]*fstoau,
+        envelope=config["envelope_type"],
+    )
+
     # checking input
     if not Path(fname).is_file():
         print(f"ERROR: file '{fname}' not found!")
         exit(1)
-
-    # converting pulse input to a.t.u.
-    fstoau = 41.341374575751
-    t0 *= fstoau
-    fwhm *= fstoau
 
     ics = InitialConditions(nsamples=nsamples, nstates=nstates, input_type=ftype)
 
@@ -872,7 +893,7 @@ def main():
         plot_spectrum(ics)
 
     # calculating the field and its spectrum
-    ics.calc_field(omega=omega, fwhm=fwhm, t0=t0, lchirp=lchirp, envelope_type=envelope_type)
+    ics.calc_field(field_params=field)
     if plotting:
         plot_field(ics)
 
