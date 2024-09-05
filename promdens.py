@@ -157,6 +157,7 @@ class InitialConditions:
         self.de = input[1:self.nstates*2:2, :self.nsamples]  # saving excitation energies
         self.tdm = input[2:self.nstates*2 + 1:2, :self.nsamples]  # saving transition dipole moments
 
+        # converting energy and tdm units to a.u.
         self.convert_units(energy_unit=energy_unit, tdm_unit=tdm_unit)
 
         self.input_read = True
@@ -164,20 +165,26 @@ class InitialConditions:
     def convert_units(self, energy_unit: str, tdm_unit: str) -> None:
         """
         Convert all the data into atomic units which are used throughout the code.
-
         :param energy_unit: energy unit on the input
         :param tdm_unit: unit of transition dipole moments on the input
         """
-        print("* Converting units.")
+
+        if not (energy_unit == 'a.u.' and tdm_unit == 'a.u.'):
+            print("* Converting units.")
+
         if energy_unit == 'eV':
             self.de *= self.evtoau
+            print("  - 'eV' -> 'a.u.'")
         elif energy_unit == 'nm':
             self.de *= self.nmtoau
+            print("  - 'nm' -> 'a.u.'")
         elif energy_unit == 'cm-1':
             self.de *= self.cm1toau
+            print("  - 'cm-1' -> 'a.u.'")
 
-        if tdm_unit == 'Debye':
+        if tdm_unit == 'debye':
             self.tdm *= self.debtoau
+            print("  - 'debye' -> 'a.u.'")
 
     def calc_spectrum(self):
         """
@@ -200,7 +207,7 @@ class InitialConditions:
 
         # checking if all the necessary preceding calculations were executed
         if not self.input_read:
-            print("ERROR: Field yet not calculated. Please first use 'calc_field()'!")
+            print("ERROR: Input hasn't been read yet. Please first use 'read_input_data()'!")
             exit(1)
 
         # calculating coefficient for intensity of the spectrum
@@ -340,7 +347,7 @@ class InitialConditions:
         """
 
         if not self.field_calculated:
-            print("ERROR: Input data not read yet. Please first use 'read_input_data()'!")
+            print("ERROR: Field not yet calculated. Please first use 'calc_field()'!")
             exit(1)
 
         # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
@@ -385,7 +392,7 @@ class InitialConditions:
         print(f"* Sampling {nsamples_ic:d} initial conditions considering the laser pulse.")
 
         if not self.input_read:
-            print("\nERROR: Field yet not calculated. Please first use 'calc_field()'!")
+            print("ERROR: Input hasn't been read yet. Please first use 'read_input_data()'!")
             exit(1)
 
         def progress(percent, width, n, str=''):
@@ -546,13 +553,15 @@ class InitialConditions:
 
         print("  - Weights saved to file 'pdaw.dat'.")
 
+
 def plot_spectrum(ics: InitialConditions) -> None:
-    print("  - Plotting UV/vis spectrum")
+    print("  - Plotting UV/vis absorption spectrum")
     colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
     if ics.nstates > 1:
         colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
     fig, axs = plt.subplots(1, 3, figsize=(12, 3.5))
     fig.suptitle("Characteristics of initial conditions (ICs) loaded")
+    plt.get_current_fig_manager().set_window_title('UV/vis absorption spectrum')  # modify the window name from Figure x
 
     for state in range(ics.nstates):
         axs[0].plot(ics.traj_index, ics.de[state]/ics.evtoau, color=colors[state], alpha=0.6, label=r"S$_\mathregular{%d}$"%state)
@@ -597,10 +606,11 @@ def plot_spectrum(ics: InitialConditions) -> None:
 
 
 def plot_field(ics: InitialConditions) -> None:
-    print("  - Plotting pulse field")
+    print("  - Plotting pulse characteristics")
     colors = plt.cm.viridis([0.35, 0.6, 0.0])
     fig, axs = plt.subplots(1, 2, figsize=(8, 3.5))
-    fig.suptitle("Field characteristics")
+    fig.suptitle("Pulse characteristics")
+    plt.get_current_fig_manager().set_window_title('Pulse characteristics')  # modify the window name from Figure x
 
     axs[0].plot(ics.field_t/ics.fstoau, ics.field, color=colors[0], linewidth=0.5, label='Field')
     axs[0].plot(ics.field_t/ics.fstoau, ics.field_envelope, color=colors[0], alpha=0.4)
@@ -637,9 +647,11 @@ def plot_field(ics: InitialConditions) -> None:
 
     # In case the pulse does not fulfil Maxwell's equations, plot the whole pulse spectrum and explain.
     if not ics.maxwell_fulfilled:
-        print("  - Plotting pulse spectrum")
+        print("  - Plotting Maxwell eq. violation (pulse spectrum at 0 frequency)")
         fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
         fig.suptitle("Pulse spectrum nonzero at zero frequency!")
+        plt.get_current_fig_manager().set_window_title('Maxwell eq. violation')  # modify the window name from Figure x
+
         axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
         axs.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
         axs.axvline(0, color='black', lw=0.5)
@@ -663,6 +675,7 @@ def plot_pda(ics: InitialConditions) -> None:
     colors = plt.cm.viridis([0.35, 0.6])
     fig = plt.figure(figsize=(6, 6))
     fig.suptitle("Excitations in time")
+    plt.get_current_fig_manager().set_window_title('PDA initial conditions')  # modify the window name from Figure x
 
     # setting the other plots around the main plot
     left, width = 0.1, 0.65
@@ -710,12 +723,14 @@ def plot_pda(ics: InitialConditions) -> None:
 
 
 def plot_pdaw(ics: InitialConditions) -> None:
-    print("  - Plotting PDAW initial conditions")
+    print("  - Plotting PDAW weights")
     colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
     if ics.nstates > 1:
         colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
     fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
     fig.suptitle("Selected initial conditions and their weights")
+    plt.get_current_fig_manager().set_window_title('PDAW weights')  # modify the window name from Figure x
+
 
     axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], label='Absorption spectrum')
     axs.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], alpha=0.2)
@@ -776,7 +791,7 @@ parser.add_argument("-p", "--plot", action="store_true", help="Plot the input da
 parser.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
 parser.add_argument("input_file", help="Input file name.")
 
-### entering code ###
+### parsing the input ###
 # Parse the input and print it
 config = vars(parser.parse_args())
 
@@ -820,7 +835,7 @@ if not Path(fname).is_file():
     print(f"ERROR: file '{fname}' not found!")
     exit(1)
 
-### code ###
+### PDA/PDAW code ###
 ics = InitialConditions(nsamples=nsamples, nstates=nstates, input_type=ftype)
 
 # reading input data
@@ -848,4 +863,5 @@ elif method == 'pdaw':
     if plotting:
         plot_pdaw(ics)
 
+### end of the code ###
 print_footer()
