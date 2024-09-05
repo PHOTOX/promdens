@@ -94,7 +94,7 @@ class FieldParams:
     tmax: float = dataclasses.field(init=False)
     
     def __post_init__(self):
-        if self.envelope not in ("gauss", 'lorentz', 'sech', 'sin', 'sin2'):
+        if self.envelope not in ENVELOPE_TYPES:
             msg = f'Invalid envelope type "{self.envelope}"'
             raise ValueError(msg)
 
@@ -804,13 +804,44 @@ def parse_cmd_args():
     parser.add_argument("-m", "--method", default='pda', choices=METHODS,
                     help="Select either Promoted density approach (PDA) to generate initial conditions with excitation times or "
                          "PDA for windowing (PDAW) to generate weights and convolution parameters.")
-    parser.add_argument("-n", "--nsamples", default=0, type=positive_int,
-                    help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
     parser.add_argument("-np", "--npsamples", default=1000, type=positive_int, help="Number of initial conditions generated with PDA.")
-    parser.add_argument("-ns", "--nstates", default=1, type=positive_int, help="Number of excited states considered.")
-    parser.add_argument("-eu", "--energy_unit", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
-    parser.add_argument("-tu", "--tdm_unit", choices=TDM_UNITS, default='a.u.',
-                    help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
+
+    inp_file = parser.add_argument_group("Input file handling")
+    inp_file.add_argument(
+        "-n",
+        "--nsamples",
+        default=0,
+        type=positive_int,
+        help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.",
+    )
+    inp_file.add_argument(
+        "-ns",
+        "--nstates",
+        required=True,
+        type=positive_int,
+        help="Number of excited states considered.",
+    )
+    inp_file.add_argument(
+        "-eu",
+        "--energy_unit",
+        choices=ENERGY_UNITS,
+        default="a.u.",
+        help="Units in which excitation energies are provided.",
+    )
+    inp_file.add_argument(
+        "-tu",
+        "--tdm_unit",
+        choices=TDM_UNITS,
+        default="a.u.",
+        help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.",
+    )
+    inp_file.add_argument(
+        "-ft",
+        "--file_type",
+        choices=FILE_TYPES,
+        default="file",
+        help="Input file type.",
+    )
 
     field = parser.add_argument_group('Field parameters')
     field.add_argument("-w", "--omega", required=True, type=positive_float, help="Frequency of the field in a.u.")
@@ -829,7 +860,6 @@ def parse_cmd_args():
                          "calculation of W for non-resonant cases. The lost of accuracy should be minimal, yet we still "
                          "recommend to use this option only if the calculation is too expensive, e.g. for very long pulses.")
     parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results and save them as png images.")
-    parser.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
     parser.add_argument("input_file", help="Input file name.")
 
     return vars(parser.parse_args())
