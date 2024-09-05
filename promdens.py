@@ -157,6 +157,7 @@ class InitialConditions:
         self.de = input[1:self.nstates*2:2, :self.nsamples]  # saving excitation energies
         self.tdm = input[2:self.nstates*2 + 1:2, :self.nsamples]  # saving transition dipole moments
 
+        # converting energy and tdm units to a.u.
         self.convert_units(energy_unit=energy_unit, tdm_unit=tdm_unit)
 
         self.input_read = True
@@ -164,20 +165,26 @@ class InitialConditions:
     def convert_units(self, energy_unit: str, tdm_unit: str) -> None:
         """
         Convert all the data into atomic units which are used throughout the code.
-
         :param energy_unit: energy unit on the input
         :param tdm_unit: unit of transition dipole moments on the input
         """
-        print("* Converting units.")
+
+        if not (energy_unit == 'a.u.' and tdm_unit == 'a.u.'):
+            print("* Converting units.")
+
         if energy_unit == 'eV':
             self.de *= self.evtoau
+            print("  - 'eV' -> 'a.u.'")
         elif energy_unit == 'nm':
             self.de *= self.nmtoau
+            print("  - 'nm' -> 'a.u.'")
         elif energy_unit == 'cm-1':
             self.de *= self.cm1toau
+            print("  - 'cm-1' -> 'a.u.'")
 
-        if tdm_unit == 'Debye':
+        if tdm_unit == 'debye':
             self.tdm *= self.debtoau
+            print("  - 'debye' -> 'a.u.'")
 
     def calc_spectrum(self):
         """
@@ -200,7 +207,7 @@ class InitialConditions:
 
         # checking if all the necessary preceding calculations were executed
         if not self.input_read:
-            print("ERROR: Field yet not calculated. Please first use 'calc_field()'!")
+            print("ERROR: Input hasn't been read yet. Please first use 'read_input_data()'!")
             exit(1)
 
         # calculating coefficient for intensity of the spectrum
@@ -340,7 +347,7 @@ class InitialConditions:
         """
 
         if not self.field_calculated:
-            print("ERROR: Input data not read yet. Please first use 'read_input_data()'!")
+            print("ERROR: Field not yet calculated. Please first use 'calc_field()'!")
             exit(1)
 
         # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
@@ -385,7 +392,7 @@ class InitialConditions:
         print(f"* Sampling {nsamples_ic:d} initial conditions considering the laser pulse.")
 
         if not self.input_read:
-            print("\nERROR: Field yet not calculated. Please first use 'calc_field()'!")
+            print("ERROR: Input hasn't been read yet. Please first use 'read_input_data()'!")
             exit(1)
 
         def progress(percent, width, n, str=''):
@@ -547,6 +554,213 @@ class InitialConditions:
         print("  - Weights saved to file 'pdaw.dat'.")
 
 
+def plot_spectrum(ics: InitialConditions) -> None:
+    print("  - Plotting UV/vis absorption spectrum")
+    colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
+    if ics.nstates > 1:
+        colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
+    fig, axs = plt.subplots(1, 3, figsize=(12, 3.5))
+    fig.suptitle("Characteristics of initial conditions (ICs) loaded")
+    plt.get_current_fig_manager().set_window_title('UV/vis absorption spectrum')  # modify the window name from Figure x
+
+    for state in range(ics.nstates):
+        axs[0].plot(ics.traj_index, ics.de[state]/ics.evtoau, color=colors[state], alpha=0.6, label=r"S$_\mathregular{%d}$"%state)
+        axs[0].scatter(ics.traj_index, ics.de[state]/ics.evtoau, color=colors[state], s=5)
+    axs[0].set_xlim(np.min(ics.traj_index) - 1, np.max(ics.traj_index) + 1)
+    axs[0].set_xlabel("IC index")
+    axs[0].set_ylabel(r"$\Delta E$ (eV)")
+    axs[0].set_title(r"Excitation energies")
+    axs[0].legend(frameon=False, labelspacing=0.1)
+    axs[0].minorticks_on()
+    axs[0].tick_params('both', direction='in', which='both', top=True, right=True)
+
+    for state in range(ics.nstates):
+        axs[1].plot(ics.traj_index, ics.tdm[state], color=colors[state], alpha=0.6)
+        axs[1].scatter(ics.traj_index, ics.tdm[state], color=colors[state], s=5)
+    axs[1].set_xlim(np.min(ics.traj_index) - 1, np.max(ics.traj_index) + 1)
+    axs[1].set_xlabel("IC index")
+    axs[1].set_ylabel(r"$|\mu|$ (a.u.)")
+    axs[1].set_title(r"Transition dipole moments")
+    axs[1].minorticks_on()
+    axs[1].tick_params('both', direction='in', which='both', top=True, right=True)
+
+    axs[2].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1], color=colors[-1], label='Total spectrum')
+    axs[2].fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1], color=colors[-1], alpha=0.2)
+    if ics.nstates > 1:
+        for state in range(ics.nstates):
+            axs[2].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1], color=colors[state], linestyle='--')
+            axs[2].fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1], color=colors[state], alpha=0.2)
+    axs[2].set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
+    axs[2].set_ylim(0, np.max(ics.spectrum[-1])*1.2)
+    axs[2].set_xlabel(r"$E$ (eV)")
+    axs[2].set_ylabel(r"$\sigma$ (cm$^2\cdot$molecule$^{-1}$)")
+    axs[2].set_title(r"Absorption spectrum")
+    axs[2].legend(frameon=False, labelspacing=0.1)
+    axs[2].ticklabel_format(style='sci', axis='y', scilimits=(0, 0), useMathText=True)
+    axs[2].minorticks_on()
+    axs[2].tick_params('both', direction='in', which='both', top=True, right=True)
+
+    plt.tight_layout()
+    plt.savefig('spectrum', dpi=300)
+    plt.show(block=False)
+
+
+def plot_field(ics: InitialConditions) -> None:
+    print("  - Plotting pulse characteristics")
+    colors = plt.cm.viridis([0.35, 0.6, 0.0])
+    fig, axs = plt.subplots(1, 2, figsize=(8, 3.5))
+    fig.suptitle("Pulse characteristics")
+    plt.get_current_fig_manager().set_window_title('Pulse characteristics')  # modify the window name from Figure x
+
+    axs[0].plot(ics.field_t/ics.fstoau, ics.field, color=colors[0], linewidth=0.5, label='Field')
+    axs[0].plot(ics.field_t/ics.fstoau, ics.field_envelope, color=colors[0], alpha=0.4)
+    axs[0].plot(ics.field_t/ics.fstoau, -ics.field_envelope, color=colors[0], alpha=0.4)
+    axs[0].fill_between(ics.field_t/ics.fstoau, ics.field_envelope, -ics.field_envelope, color=colors[0], label='Envelope', alpha=0.2)
+    axs[0].set_xlim(np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau))
+    axs[0].set_ylim(np.min(-ics.field_envelope)*1.2, np.max(ics.field_envelope)*1.2)
+    axs[0].set_xlabel(r"Time (fs)")
+    axs[0].set_ylabel(r"$\vec{E}$")
+    axs[0].set_title(r"Laser pulse field")
+    axs[0].legend(frameon=False, labelspacing=0.1, loc='upper left')
+    axs[0].minorticks_on()
+    axs[0].tick_params('both', direction='in', which='both', top=True, right=True)
+
+    for state in range(ics.nstates):
+        axs[1].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[-1], linestyle='--', linewidth=1,
+                    alpha=0.5)
+    axs[1].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], label='Absorption spectrum')
+    axs[1].fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], alpha=0.2)
+    axs[1].plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
+    axs[1].fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
+    axs[1].set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
+    axs[1].set_ylim(0, 1.2)
+    axs[1].set_xlabel(r"$E$ (eV)")
+    axs[1].set_ylabel(r"$\epsilon$")
+    axs[1].set_title(r"Pulse spectrum")
+    axs[1].legend(frameon=False, labelspacing=0.1)
+    axs[1].minorticks_on()
+    axs[1].tick_params('both', direction='in', which='both', top=True, right=True)
+
+    plt.tight_layout()
+    plt.savefig('field', dpi=300)
+    plt.show(block=False)
+
+    # In case the pulse does not fulfil Maxwell's equations, plot the whole pulse spectrum and explain.
+    if not ics.maxwell_fulfilled:
+        print("  - Plotting Maxwell eq. violation (pulse spectrum at 0 frequency)")
+        fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
+        fig.suptitle("Pulse spectrum nonzero at zero frequency!")
+        plt.get_current_fig_manager().set_window_title('Maxwell eq. violation')  # modify the window name from Figure x
+
+        axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
+        axs.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
+        axs.axvline(0, color='black', lw=0.5)
+        axs.scatter(ics.field_ft_omega[0]/ics.evtoau, ics.field_ft[0], color='black')
+        axs.set_xlim(-0.1, ics.field_ft_omega[np.argmax(ics.field_ft)*2]/ics.evtoau)
+        axs.set_ylim(0, 1.2)
+        axs.set_xlabel(r"$E$ (eV)")
+        axs.set_ylabel(r"Pulse spectrum")
+        axs.set_title(r"$\int_{-\infty}^\infty \vec{E}(t) \mathregular{d}t = \mathcal{F}[\vec{E}(t)]|_{\omega=0} \neq 0$"
+                      "\nViolation of Maxwell's equations!")
+        axs.minorticks_on()
+        axs.tick_params('both', direction='in', which='both', top=True, right=True)
+
+        plt.tight_layout()
+        plt.savefig('field_maxwell_violation', dpi=300)
+        plt.show(block=False)
+
+
+def plot_pda(ics: InitialConditions) -> None:
+    print("  - Plotting PDA initial conditions")
+    colors = plt.cm.viridis([0.35, 0.6])
+    fig = plt.figure(figsize=(6, 6))
+    fig.suptitle("Excitations in time")
+    plt.get_current_fig_manager().set_window_title('PDA initial conditions')  # modify the window name from Figure x
+
+    # setting the other plots around the main plot
+    left, width = 0.1, 0.65
+    bottom, height = 0.1, 0.65
+    spacing = 0.00
+    rect_scatter = [left, bottom, width, height]
+    rect_histx = [left, bottom + height + spacing, width, 0.2]
+    rect_histy = [left + width + spacing, bottom, 0.2, height]
+    axs = fig.add_axes(rect_scatter)
+
+    emin, emax = np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau)
+    tmin, tmax = np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau)
+
+    h = axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100), cmap=plt.cm.viridis,
+                   density=True)
+    if lchirp != 0:
+        axs.plot((omega + 2*lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color='white', linestyle='--', label=r"$\omega(t)$")
+        axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
+
+    ax_histy = fig.add_axes(rect_histy, sharey=axs)
+    ax_histy.plot(ics.field_envelope**2, ics.field_t/ics.fstoau, color=colors[0], label="Pulse \nintensity")
+    ax_histy.fill_betweenx(ics.field_t/ics.fstoau, ics.field_envelope**2, 0, color=colors[0], alpha=0.2)
+    ax_histy.set_xlim(0, 1.2)
+    ax_histy.legend(frameon=True, framealpha=0.9, labelspacing=0.1, edgecolor='white')
+
+    ax_histx = fig.add_axes(rect_histx, sharex=axs)
+    ax_histx.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], label='Absorption spectrum')
+    ax_histx.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], alpha=0.2)
+    ax_histx.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color=colors[0], label='Pulse spec. intensity')
+    ax_histx.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft**2, color=colors[0], alpha=0.2)
+    ax_histx.set_ylim(0, 1.2)
+    ax_histx.legend(frameon=False, labelspacing=0.1)
+
+    ax_histx.tick_params("both", which='both', direction='in', labelbottom=False)
+    ax_histy.tick_params("both", which='both', direction='in', labelleft=False)
+    ax_histy.set_xticks([])
+    ax_histx.set_yticks([])
+    axs.set_xlabel(r"$\Delta E$ (eV)")
+    axs.set_ylabel(r"Time (fs)")
+    axs.minorticks_on()
+    axs.tick_params("both", which='both', direction='in', top=True, right=True, color='white')
+
+    plt.savefig('pda', dpi=300)
+    plt.show()
+
+
+def plot_pdaw(ics: InitialConditions) -> None:
+    print("  - Plotting PDAW weights")
+    colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
+    if ics.nstates > 1:
+        colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
+    fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
+    fig.suptitle("Selected initial conditions and their weights")
+    plt.get_current_fig_manager().set_window_title('PDAW weights')  # modify the window name from Figure x
+
+
+    axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], label='Absorption spectrum')
+    axs.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], alpha=0.2)
+
+    maxw = np.max(ics.weights)
+    if ics.nstates > 1:
+        for state in range(ics.nstates):
+            # plotting spectrum
+            axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[state], linestyle='--')
+            axs.fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[state], alpha=0.2)
+            # weights of initial conditions plotted as sticks with points
+            axs.scatter(ics.de[state, :]/ics.evtoau, ics.weights[state, :]/maxw, color=colors[state], s=5)
+            for index in range(ics.nsamples):
+                axs.plot([ics.de[state, index]/ics.evtoau]*2, [0, ics.weights[state, index]/maxw], color=colors[state])
+
+    axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color='black', alpha=0.5, label='Pulse intensity spectrum')
+    axs.set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
+    axs.set_ylim(0, 1.3)
+    axs.set_xlabel(r"$E$ (eV)")
+    axs.set_ylabel(r"$\epsilon$")
+    axs.set_title(r"Pulse spectrum")
+    axs.legend(frameon=False, labelspacing=0.1, loc='upper left')
+    axs.minorticks_on()
+    axs.tick_params('both', direction='in', which='both', top=True, right=True)
+
+    plt.tight_layout()
+    plt.savefig('pdaw', dpi=300)
+    plt.show()
+
+
 ### setting up parser ###
 parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-m", "--method", default='pda', choices=METHODS,
@@ -577,7 +791,7 @@ parser.add_argument("-p", "--plot", action="store_true", help="Plot the input da
 parser.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
 parser.add_argument("input_file", help="Input file name.")
 
-### entering code ###
+### parsing the input ###
 # Parse the input and print it
 config = vars(parser.parse_args())
 
@@ -621,8 +835,7 @@ if not Path(fname).is_file():
     print(f"ERROR: file '{fname}' not found!")
     exit(1)
 
-### code ###
-# creating object initial conditions
+### PDA/PDAW code ###
 ics = InitialConditions(nsamples=nsamples, nstates=nstates, input_type=ftype)
 
 # reading input data
@@ -631,217 +844,24 @@ ics.read_input_data(fname=fname, energy_unit=energy_unit, tdm_unit=tdm_unit)
 # calculating spectrum with nuclear ensemble approach
 ics.calc_spectrum()
 
-# plotting loaded data
 if plotting:
-    print("  - Plotting Figure 1")
-    colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
-    if ics.nstates > 1:
-        colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
-    fig, axs = plt.subplots(1, 3, figsize=(12, 3.5))
-    fig.suptitle("Characteristics of initial conditions (ICs) loaded")
-
-    for state in range(ics.nstates):
-        axs[0].plot(ics.traj_index, ics.de[state]/ics.evtoau, color=colors[state], alpha=0.6, label=r"S$_\mathregular{%d}$"%state)
-        axs[0].scatter(ics.traj_index, ics.de[state]/ics.evtoau, color=colors[state], s=5)
-    axs[0].set_xlim(np.min(ics.traj_index) - 1, np.max(ics.traj_index) + 1)
-    axs[0].set_xlabel("IC index")
-    axs[0].set_ylabel(r"$\Delta E$ (eV)")
-    axs[0].set_title(r"Excitation energies")
-    axs[0].legend(frameon=False, labelspacing=0.1)
-    axs[0].minorticks_on()
-    axs[0].tick_params('both', direction='in', which='both', top=True, right=True)
-
-    for state in range(ics.nstates):
-        axs[1].plot(ics.traj_index, ics.tdm[state], color=colors[state], alpha=0.6)
-        axs[1].scatter(ics.traj_index, ics.tdm[state], color=colors[state], s=5)
-    axs[1].set_xlim(np.min(ics.traj_index) - 1, np.max(ics.traj_index) + 1)
-    axs[1].set_xlabel("IC index")
-    axs[1].set_ylabel(r"$|\mu|$ (a.u.)")
-    axs[1].set_title(r"Transition dipole moments")
-    axs[1].minorticks_on()
-    axs[1].tick_params('both', direction='in', which='both', top=True, right=True)
-
-    axs[2].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1], color=colors[-1], label='Total spectrum')
-    axs[2].fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1], color=colors[-1], alpha=0.2)
-    if ics.nstates > 1:
-        for state in range(ics.nstates):
-            axs[2].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1], color=colors[state], linestyle='--')
-            axs[2].fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1], color=colors[state], alpha=0.2)
-    axs[2].set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
-    axs[2].set_ylim(0, np.max(ics.spectrum[-1])*1.2)
-    axs[2].set_xlabel(r"$E$ (eV)")
-    axs[2].set_ylabel(r"$\sigma$ (cm$^2\cdot$molecule$^{-1}$)")
-    axs[2].set_title(r"Absorption spectrum")
-    axs[2].legend(frameon=False, labelspacing=0.1)
-    axs[2].ticklabel_format(style='sci', axis='y', scilimits=(0, 0), useMathText=True)
-    axs[2].minorticks_on()
-    axs[2].tick_params('both', direction='in', which='both', top=True, right=True)
-
-    plt.tight_layout()
-    plt.savefig('spectrum', dpi=300)
-    plt.show(block=False)
+    plot_spectrum(ics)
 
 # calculating the field and its spectrum
 ics.calc_field(omega=omega, fwhm=fwhm, t0=t0, lchirp=lchirp, envelope_type=envelope_type)
-
-# plotting field
 if plotting:
-    print("  - Plotting Figure 2")
-    colors = plt.cm.viridis([0.35, 0.6, 0.0])
-    fig, axs = plt.subplots(1, 2, figsize=(8, 3.5))
-    fig.suptitle("Field characteristics")
-
-    axs[0].plot(ics.field_t/ics.fstoau, ics.field, color=colors[0], linewidth=0.5, label='Field')
-    axs[0].plot(ics.field_t/ics.fstoau, ics.field_envelope, color=colors[0], alpha=0.4)
-    axs[0].plot(ics.field_t/ics.fstoau, -ics.field_envelope, color=colors[0], alpha=0.4)
-    axs[0].fill_between(ics.field_t/ics.fstoau, ics.field_envelope, -ics.field_envelope, color=colors[0], label='Envelope', alpha=0.2)
-    axs[0].set_xlim(np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau))
-    axs[0].set_ylim(np.min(-ics.field_envelope)*1.2, np.max(ics.field_envelope)*1.2)
-    axs[0].set_xlabel(r"Time (fs)")
-    axs[0].set_ylabel(r"$\vec{E}$")
-    axs[0].set_title(r"Laser pulse field")
-    axs[0].legend(frameon=False, labelspacing=0.1, loc='upper left')
-    axs[0].minorticks_on()
-    axs[0].tick_params('both', direction='in', which='both', top=True, right=True)
-
-    for state in range(ics.nstates):
-        axs[1].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[-1], linestyle='--', linewidth=1,
-                    alpha=0.5)
-    axs[1].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], label='Absorption spectrum')
-    axs[1].fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], alpha=0.2)
-    axs[1].plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
-    axs[1].fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
-    axs[1].set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
-    axs[1].set_ylim(0, 1.2)
-    axs[1].set_xlabel(r"$E$ (eV)")
-    axs[1].set_ylabel(r"$\epsilon$")
-    axs[1].set_title(r"Pulse spectrum")
-    axs[1].legend(frameon=False, labelspacing=0.1)
-    axs[1].minorticks_on()
-    axs[1].tick_params('both', direction='in', which='both', top=True, right=True)
-
-    plt.tight_layout()
-    plt.savefig('field', dpi=300)
-    plt.show(block=False)
-
-    # In case the pulse does not fulfil Maxwell's equations, plot the whole pulse spectrum and explain.
-    if not ics.maxwell_fulfilled:
-        print("  - Plotting Figure 3")
-        fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
-        fig.suptitle("Pulse spectrum nonzero at zero frequency!")
-        axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
-        axs.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
-        axs.axvline(0, color='black', lw=0.5)
-        axs.scatter(ics.field_ft_omega[0]/ics.evtoau, ics.field_ft[0], color='black')
-        axs.set_xlim(-0.1, ics.field_ft_omega[np.argmax(ics.field_ft)*2]/ics.evtoau)
-        axs.set_ylim(0, 1.2)
-        axs.set_xlabel(r"$E$ (eV)")
-        axs.set_ylabel(r"Pulse spectrum")
-        axs.set_title(r"$\int_{-\infty}^\infty \vec{E}(t) \mathregular{d}t = \mathcal{F}[\vec{E}(t)]|_{\omega=0} \neq 0$"
-                      "\nViolation of Maxwell's equations!")
-        axs.minorticks_on()
-        axs.tick_params('both', direction='in', which='both', top=True, right=True)
-
-        plt.tight_layout()
-        plt.savefig('field_maxwell_violation', dpi=300)
-        plt.show(block=False)
+    plot_field(ics)
 
 # perform either PDA or PDAW and plot
 if method == 'pda':
     ics.sample_initial_conditions(nsamples_ic=new_nsamples, neg_handling=neg_handling, preselect=preselect, seed=seed)
     if plotting:
-        if ics.maxwell_fulfilled:
-            print("  - Plotting Figure 3")
-        else:
-            print("  - Plotting Figure 4")
-        colors = plt.cm.viridis([0.35, 0.6])
-        fig = plt.figure(figsize=(6, 6))
-        fig.suptitle("Excitations in time")
-
-        # setting the other plots around the main plot
-        left, width = 0.1, 0.65
-        bottom, height = 0.1, 0.65
-        spacing = 0.00
-        rect_scatter = [left, bottom, width, height]
-        rect_histx = [left, bottom + height + spacing, width, 0.2]
-        rect_histy = [left + width + spacing, bottom, 0.2, height]
-        axs = fig.add_axes(rect_scatter)
-
-        emin, emax = np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau)
-        tmin, tmax = np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau)
-
-        h = axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100), cmap=plt.cm.viridis,
-                       density=True)
-        if lchirp != 0:
-            axs.plot((omega + 2*lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color='white', linestyle='--', label=r"$\omega(t)$")
-            axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
-
-        ax_histy = fig.add_axes(rect_histy, sharey=axs)
-        ax_histy.plot(ics.field_envelope**2, ics.field_t/ics.fstoau, color=colors[0], label="Pulse \nintensity")
-        ax_histy.fill_betweenx(ics.field_t/ics.fstoau, ics.field_envelope**2, 0, color=colors[0], alpha=0.2)
-        ax_histy.set_xlim(0, 1.2)
-        ax_histy.legend(frameon=True, framealpha=0.9, labelspacing=0.1, edgecolor='white')
-
-        ax_histx = fig.add_axes(rect_histx, sharex=axs)
-        ax_histx.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], label='Absorption spectrum')
-        ax_histx.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], alpha=0.2)
-        ax_histx.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color=colors[0], label='Pulse spec. intensity')
-        ax_histx.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft**2, color=colors[0], alpha=0.2)
-        ax_histx.set_ylim(0, 1.2)
-        ax_histx.legend(frameon=False, labelspacing=0.1)
-
-        ax_histx.tick_params("both", which='both', direction='in', labelbottom=False)
-        ax_histy.tick_params("both", which='both', direction='in', labelleft=False)
-        ax_histy.set_xticks([])
-        ax_histx.set_yticks([])
-        axs.set_xlabel(r"$\Delta E$ (eV)")
-        axs.set_ylabel(r"Time (fs)")
-        axs.minorticks_on()
-        axs.tick_params("both", which='both', direction='in', top=True, right=True, color='white')
-
-        plt.savefig('pda', dpi=300)
-        plt.show()
+        plot_pda(ics)
 
 elif method == 'pdaw':
     ics.windowing()
     if plotting:
-        if ics.maxwell_fulfilled:
-            print("  - Plotting Figure 3")
-        else:
-            print("  - Plotting Figure 4")
-        colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
-        if ics.nstates > 1:
-            colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
-        fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
-        fig.suptitle("Selected initial conditions and their weights")
+        plot_pdaw(ics)
 
-        axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], label='Absorption spectrum')
-        axs.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], alpha=0.2)
-
-        maxw = np.max(ics.weights)
-        if ics.nstates > 1:
-            for state in range(ics.nstates):
-                # plotting spectrum
-                axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[state], linestyle='--')
-                axs.fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[state], alpha=0.2)
-                # weights of initial conditions plotted as sticks with points
-                axs.scatter(ics.de[state, :]/ics.evtoau, ics.weights[state, :]/maxw, color=colors[state], s=5)
-                for index in range(ics.nsamples):
-                    axs.plot([ics.de[state, index]/ics.evtoau]*2, [0, ics.weights[state, index]/maxw], color=colors[state])
-
-        axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color='black', alpha=0.5, label='Pulse intensity spectrum')
-        axs.set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
-        axs.set_ylim(0, 1.3)
-        axs.set_xlabel(r"$E$ (eV)")
-        axs.set_ylabel(r"$\epsilon$")
-        axs.set_title(r"Pulse spectrum")
-        axs.legend(frameon=False, labelspacing=0.1, loc='upper left')
-        axs.minorticks_on()
-        axs.tick_params('both', direction='in', which='both', top=True, right=True)
-
-        plt.tight_layout()
-
-        plt.savefig('pdaw', dpi=300)
-        plt.show()
-
+### end of the code ###
 print_footer()
