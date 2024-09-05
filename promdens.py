@@ -677,7 +677,7 @@ def plot_field(ics: InitialConditions) -> None:
         plt.show(block=False)
 
 
-def plot_pda(ics: InitialConditions, lchirp) -> None:
+def plot_pda(ics: InitialConditions) -> None:
     print("  - Plotting PDA initial conditions")
     colors = plt.cm.viridis([0.35, 0.6])
     fig = plt.figure(figsize=(6, 6))
@@ -696,10 +696,22 @@ def plot_pda(ics: InitialConditions, lchirp) -> None:
     emin, emax = np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau)
     tmin, tmax = np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau)
 
-    h = axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100), cmap=plt.cm.viridis,
-                   density=True)
-    if lchirp != 0:
-        axs.plot((omega + 2*lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color='white', linestyle='--', label=r"$\omega(t)$")
+    axs.hist2d(
+        ics.ics[3] / ics.evtoau,
+        ics.ics[1] / ics.fstoau,
+        range=[[emin, emax], [tmin, tmax]],
+        bins=(100, 100),
+        cmap=plt.cm.viridis,
+        density=True,
+    )
+    if ics.field_lchirp != 0:
+        axs.plot(
+            (ics.field_omega + 2 * ics.field_lchirp * ics.field_t) / ics.evtoau,
+            ics.field_t / ics.fstoau,
+            color="white",
+            linestyle="--",
+            label=r"$\omega(t)$",
+        )
         axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
 
     ax_histy = fig.add_axes(rect_histy, sharey=axs)
@@ -866,7 +878,7 @@ def main():
             seed=seed,
         )
         if plotting:
-            plot_pda(ics, lchirp)
+            plot_pda(ics)
 
     elif method == 'pdaw':
         ics.windowing()
