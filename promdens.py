@@ -94,6 +94,9 @@ class FieldParams:
     tmax: float = dataclasses.field(init=False)
     
     def __post_init__(self):
+        if self.envelope not in ("gauss", 'lorentz', 'sech', 'sin', 'sin2'):
+            msg = f'Invalid envelope type "{self.envelope}"'
+            raise ValueError(msg)
 
         if self.envelope == 'gauss':
             self.equation = "exp(-2*ln(2)*(t-t0)^2/fwhm^2)*cos((omega+lchirp*t)*t)"
@@ -106,7 +109,7 @@ class FieldParams:
         elif self.envelope == 'sech':
             self.equation = "sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+lchirp*t)*t)"
             self.tmin = self.t0 - 4.4 * self.fwhm
-            self.tmax = self.t0 + 4.4*self.fwhm
+            self.tmax = self.t0 + 4.4 * self.fwhm
         elif self.envelope == 'sin':
             self.equation = "sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+lchirp*t)*t) in range [t0-fwhm,t0+fwhm]"
             self.tmin = self.t0 - self.fwhm
@@ -376,13 +379,13 @@ class InitialConditions:
         # analytic formulas should be implemented in the future to avoid that
         if self.field_params.envelope == 'gauss':
             factor = 7.5
-        elif self.field_envelope == 'lorentz':
+        elif self.field_params.envelope == 'lorentz':
             factor = 50
         elif self.field_params.envelope == 'sech':
             factor = 20
-        elif self.field_params.envelope_type == 'sin':
+        elif self.field_params.envelope == 'sin':
             factor = 3
-        elif self.field_params.envelope_type == 'sin2':
+        elif self.field_params.envelope == 'sin2':
             factor = 4
 
         # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
@@ -878,7 +881,6 @@ def main():
 
     # calculating spectrum with nuclear ensemble approach
     ics.calc_spectrum()
-
     if plotting:
         plot_spectrum(ics)
 
