@@ -16,7 +16,6 @@ import argparse
 from pathlib import Path
 from timeit import default_timer as timer
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 ENERGY_UNITS = ['a.u.', 'eV', 'nm', 'cm-1']
@@ -556,6 +555,8 @@ class InitialConditions:
 
 
 def plot_spectrum(ics: InitialConditions) -> None:
+    import matplotlib.pyplot as plt
+
     print("  - Plotting UV/vis absorption spectrum")
     colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
     if ics.nstates > 1:
@@ -607,6 +608,8 @@ def plot_spectrum(ics: InitialConditions) -> None:
 
 
 def plot_field(ics: InitialConditions) -> None:
+    import matplotlib.pyplot as plt
+
     print("  - Plotting pulse characteristics")
     colors = plt.cm.viridis([0.35, 0.6, 0.0])
     fig, axs = plt.subplots(1, 2, figsize=(8, 3.5))
@@ -672,6 +675,8 @@ def plot_field(ics: InitialConditions) -> None:
 
 
 def plot_pda(ics: InitialConditions) -> None:
+    import matplotlib.pyplot as plt
+
     print("  - Plotting PDA initial conditions")
     colors = plt.cm.viridis([0.35, 0.6])
     fig = plt.figure(figsize=(6, 6))
@@ -724,6 +729,8 @@ def plot_pda(ics: InitialConditions) -> None:
 
 
 def plot_pdaw(ics: InitialConditions) -> None:
+    import matplotlib.pyplot as plt
+
     print("  - Plotting PDAW weights")
     colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
     if ics.nstates > 1:
@@ -767,19 +774,25 @@ def parse_cmd_args():
     parser.add_argument("-m", "--method", default='pda', choices=METHODS,
                         help="Select either Promoted density approach (PDA) to generate initial conditions with excitation times or "
                              "PDA for windowing (PDAW) to generate weights and convolution parameters.")
-    parser.add_argument("-n", "--nsamples", default=0, type=positive_int,
-                        help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
     parser.add_argument("-np", "--npsamples", default=1000, type=positive_int, help="Number of initial conditions generated with PDA.")
-    parser.add_argument("-ns", "--nstates", default=1, type=positive_int, help="Number of excited states considered.")
-    parser.add_argument("-eu", "--energy_unit", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
-    parser.add_argument("-tu", "--tdm_unit", choices=TDM_UNITS, default='a.u.',
+
+    inp_file = parser.add_argument_group("Input file handling")
+    inp_file.add_argument("-n", "--nsamples", default=0, type=positive_int,
+                        help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
+    inp_file.add_argument("-ns", "--nstates", default=1, type=positive_int, help="Number of excited states considered.")
+    inp_file.add_argument("-eu", "--energy_unit", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
+    inp_file.add_argument("-tu", "--tdm_unit", choices=TDM_UNITS, default='a.u.',
                         help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
-    parser.add_argument("-w", "--omega", required=True, type=positive_float, help="Frequency of the field in a.u.")
-    parser.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
-    parser.add_argument("-f", "--fwhm", required=True, type=positive_float,
+    inp_file.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
+
+    field = parser.add_argument_group('Field parameters')
+    field.add_argument("-w", "--omega", required=True, type=positive_float, help="Frequency of the field in a.u.")
+    field.add_argument("-f", "--fwhm", required=True, type=positive_float,
                         help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
-    parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
-    parser.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
+    field.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
+    field.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
+    field.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
+
     parser.add_argument("-neg", "--neg_handling", choices=NEG_PROB_HANDLING, default='error', help="Procedures how to handle negative probabilities.")
     parser.add_argument("-s", "--random_seed", default=None, type=positive_int,
                         help="Seed for the random number generator. Default: generate random seed from OS.")
@@ -789,7 +802,6 @@ def parse_cmd_args():
                              "calculation of W for non-resonant cases. The lost of accuracy should be minimal, yet we still "
                              "recommend to use this option only if the calculation is too expensive, e.g. for very long pulses.")
     parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results and save them as png images.")
-    parser.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
     parser.add_argument("input_file", help="Input file name.")
 
     return vars(parser.parse_args())
