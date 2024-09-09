@@ -296,14 +296,15 @@ class InitialConditions:
             return field
 
     # TODO: Move to LaserPulse
-    def field_cos(self, t: np.ndarray) -> np.ndarray:
+    @staticmethod
+    def field_cos(omega, lchirp, t):
         """
         Calculate oscillations of the field with the cos function.
 
         :param t: array of time values
         :return: array of cos((w + lchirp*t)*t)
         """
-        return np.cos((self.field_omega + self.field_lchirp*t)*t)
+        return np.cos((omega + lchirp*t)*t)
 
     def calc_field(self, pulse: LaserPulse) -> None:
         """
