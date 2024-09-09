@@ -105,19 +105,28 @@ class LaserPulse:
 
     def __post_init__(self):
         if self.envelope_type not in ENVELOPE_TYPES:
-            msg = f'Invalid envelope type "{self.envelope}"'
+            msg = f'Invalid envelope type "{self.envelope_type}"'
             raise ValueError(msg)
 
         if self.envelope_type == 'gauss':
             self.equation = "exp(-2*ln(2)*(t-t0)^2/fwhm^2)*cos((omega+chirp*t)*t)"
         elif self.envelope_type == 'lorentz':
             self.equation = "(1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+chirp*t)*t)"
-        elif self.envelope == 'sech':
+        elif self.envelope_type == 'sech':
             self.equation = "sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+chirp*t)*t)"
-        elif self.envelope == 'sin':
+        elif self.envelope_type == 'sin':
             self.equation = "sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+chirp*t)*t) in range [t0-fwhm,t0+fwhm]"
-        elif self.envelope == 'sin2':
+        elif self.envelope_type == 'sin2':
             self.equation = "sin(pi/2*(t-t0+T)/T)^2*cos((omega+chirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm"
+
+    def field_cos(self, t: np.ndarray) -> np.ndarray:
+        """
+        Calculate oscillations of the electric field with the cos function.
+
+        :param t: array of time values
+        :return: array of cos((w + lchirp*t)*t)
+        """
+        return np.cos((self.omega + self.lchirp * t) * t)
 
 
 class InitialConditions:
@@ -259,6 +268,7 @@ class InitialConditions:
         # calculating total spectrum (summing over all states)
         self.spectrum[-1] = np.sum(self.spectrum[1:-1], axis=0)
 
+    # TODO: Move to LaserPulse
     def calc_field_envelope(self, t):
         """
         Calculating field envelope. The field parameters are taken form the class (stored with 'calc_field' function).
@@ -285,11 +295,13 @@ class InitialConditions:
                     field[k] = np.sin(np.pi/2*(t[k] - self.field_t0 + T)/T)**2
             return field
 
-    def field_cos(self, t):
+    # TODO: Move to LaserPulse
+    def field_cos(self, t: np.ndarray) -> np.ndarray:
         """
-        Calculating oscillations of the field with the cos function.
-        :param t: time
-        :return: cos((w + lchirp*t)*t)
+        Calculate oscillations of the field with the cos function.
+
+        :param t: array of time values
+        :return: array of cos((w + lchirp*t)*t)
         """
         return np.cos((self.field_omega + self.field_lchirp*t)*t)
 
@@ -299,6 +311,7 @@ class InitialConditions:
 
         :param pulse: LaserPulse dataclass containing laser pulse parameters (frequency, fwhm...)
         """
+        self.pulse = pulse
         self.field_omega = pulse.omega
         self.field_lchirp = pulse.lchirp
         self.field_envelope_type = pulse.envelope_type
@@ -331,6 +344,7 @@ class InitialConditions:
         self.field_ft /= np.max(self.field_ft)  # normalizing to have maximum at 0
         self.field_ft_omega = 2*np.pi*np.fft.rfftfreq(len(t_ft), dt)
 
+        # TODO: Move to function `is_maxwell_fulfilled()`
         # checking the pulse fulfils Maxwell's equations (integral from -infinity to infinity of E(t) = E(w=0) 0)
         if self.field_ft_omega[0] == 0:  # the integral is equal to spectrum at zero frequency
             integral = self.field_ft[0]
@@ -346,6 +360,7 @@ class InitialConditions:
             print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
             self.maxwell_fulfilled = True
 
+    # TODO: Move to LaserPulse
     def pulse_wigner(self, tprime, de):
         """
         Wigner transform of the pulse. The current implementation uses the pulse envelope formulation to simplify calculations.
