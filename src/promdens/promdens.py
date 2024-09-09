@@ -105,18 +105,18 @@ class LaserPulse:
 
     def __post_init__(self):
         if self.envelope_type not in ENVELOPE_TYPES:
-            msg = f'Invalid envelope type "{self.envelope}"'
+            msg = f'Invalid envelope type "{self.envelope_type}"'
             raise ValueError(msg)
 
         if self.envelope_type == 'gauss':
             self.equation = "exp(-2*ln(2)*(t-t0)^2/fwhm^2)*cos((omega+chirp*t)*t)"
         elif self.envelope_type == 'lorentz':
             self.equation = "(1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+chirp*t)*t)"
-        elif self.envelope == 'sech':
+        elif self.envelope_type == 'sech':
             self.equation = "sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+chirp*t)*t)"
-        elif self.envelope == 'sin':
+        elif self.envelope_type == 'sin':
             self.equation = "sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+chirp*t)*t) in range [t0-fwhm,t0+fwhm]"
-        elif self.envelope == 'sin2':
+        elif self.envelope_type == 'sin2':
             self.equation = "sin(pi/2*(t-t0+T)/T)^2*cos((omega+chirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm"
 
 
