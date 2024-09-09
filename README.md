@@ -74,7 +74,7 @@ If the same command would be used with PDAW instead of PDA (`--method pdaw`), th
        9      1.47188e-03      1.37747e-01
       10      1.33347e-06      3.55670e-01
 ```
-The code provides the pulse intensity and weights necessary for the convolution described in Eq. (14) in the article. Note that the intensity should be normalized before used in convolution. If only a restricted amount of trajectories can be calculated, the user should choose the indexes and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in S_$1$ and indexes 3, 4, 5, 8, 9, and 10 starting in S$_2$.
+The code provides the pulse intensity and weights necessary for the convolution described in Eq. (14) in the article. Note that the intensity should be normalized before used in convolution. If only a restricted amount of trajectories can be calculated, the user should choose the indexes and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in S$_1$ and indexes 3, 4, 5, 8, 9, and 10 starting in S$_2$.
 
 If the user selects option `--plot`, the code will produce a series of plots analyzing the provided data and calculated results, e.g. the absorption spectrum calculated with the nuclear ensemble method, the pulse spectrum or the Wigner pulse transform.
 

@@ -406,13 +406,7 @@ class InitialConditions:
         samples = np.zeros((5, nsamples_ic))  # index, excitation time, initial excited state, de, tdm
 
         # setting maximum random number generated during sampling
-        rnd_max = (
-            np.max(self.tdm**2)
-            * self.pulse_wigner(
-                self.field_t0, de=self.field_omega + self.field_lchirp * self.field_t0
-            )
-            * 1.01
-        )
+        rnd_max = (np.max(self.tdm**2)*self.pulse_wigner(self.field_t0, de=self.field_omega + self.field_lchirp*self.field_t0)*1.01)
 
         # preselection of initial conditions based on pulse spectrum in order to avoid long calculation of the Wigner
         # distribution for samples far from resonance (the more out of resonance with the field, the more the integrand
@@ -696,22 +690,10 @@ def plot_pda(ics: InitialConditions) -> None:
     emin, emax = np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau)
     tmin, tmax = np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau)
 
-    axs.hist2d(
-        ics.ics[3] / ics.evtoau,
-        ics.ics[1] / ics.fstoau,
-        range=[[emin, emax], [tmin, tmax]],
-        bins=(100, 100),
-        cmap=plt.cm.viridis,
-        density=True,
-    )
+    axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100), cmap=plt.cm.viridis, density=True, )
     if ics.field_lchirp != 0:
-        axs.plot(
-            (ics.field_omega + 2 * ics.field_lchirp * ics.field_t) / ics.evtoau,
-            ics.field_t / ics.fstoau,
-            color="white",
-            linestyle="--",
-            label=r"$\omega(t)$",
-        )
+        axs.plot((ics.field_omega + 2*ics.field_lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color="white", linestyle="--",
+            label=r"$\omega(t)$", )
         axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
 
     ax_histy = fig.add_axes(rect_histy, sharey=axs)
@@ -750,7 +732,6 @@ def plot_pdaw(ics: InitialConditions) -> None:
     fig.suptitle("Selected initial conditions and their weights")
     plt.get_current_fig_manager().set_window_title('PDAW weights')  # modify the window name from Figure x
 
-
     axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], label='Absorption spectrum')
     axs.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], alpha=0.2)
 
@@ -784,29 +765,29 @@ def parse_cmd_args():
     ### setting up parser ###
     parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-m", "--method", default='pda', choices=METHODS,
-                    help="Select either Promoted density approach (PDA) to generate initial conditions with excitation times or "
-                         "PDA for windowing (PDAW) to generate weights and convolution parameters.")
+                        help="Select either Promoted density approach (PDA) to generate initial conditions with excitation times or "
+                             "PDA for windowing (PDAW) to generate weights and convolution parameters.")
     parser.add_argument("-n", "--nsamples", default=0, type=positive_int,
-                    help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
+                        help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
     parser.add_argument("-np", "--npsamples", default=1000, type=positive_int, help="Number of initial conditions generated with PDA.")
     parser.add_argument("-ns", "--nstates", default=1, type=positive_int, help="Number of excited states considered.")
     parser.add_argument("-eu", "--energy_unit", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
     parser.add_argument("-tu", "--tdm_unit", choices=TDM_UNITS, default='a.u.',
-                    help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
+                        help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
     parser.add_argument("-w", "--omega", required=True, type=positive_float, help="Frequency of the field in a.u.")
     parser.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
     parser.add_argument("-f", "--fwhm", required=True, type=positive_float,
-                    help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
+                        help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
     parser.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
     parser.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
     parser.add_argument("-neg", "--neg_handling", choices=NEG_PROB_HANDLING, default='error', help="Procedures how to handle negative probabilities.")
     parser.add_argument("-s", "--random_seed", default=None, type=positive_int,
-                    help="Seed for the random number generator. Default: generate random seed from OS.")
+                        help="Seed for the random number generator. Default: generate random seed from OS.")
     parser.add_argument("-ps", "--preselect", action="store_true",
-                    help="Preselect samples within pulse spectrum for PDA. This option provides significant speed "
-                         "up if the pulse spectrum covers only small part of the absorption spectrum as it avoids expensive "
-                         "calculation of W for non-resonant cases. The lost of accuracy should be minimal, yet we still "
-                         "recommend to use this option only if the calculation is too expensive, e.g. for very long pulses.")
+                        help="Preselect samples within pulse spectrum for PDA. This option provides significant speed "
+                             "up if the pulse spectrum covers only small part of the absorption spectrum as it avoids expensive "
+                             "calculation of W for non-resonant cases. The lost of accuracy should be minimal, yet we still "
+                             "recommend to use this option only if the calculation is too expensive, e.g. for very long pulses.")
     parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results and save them as png images.")
     parser.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
     parser.add_argument("input_file", help="Input file name.")
@@ -815,7 +796,7 @@ def parse_cmd_args():
 
 
 def main():
-    # Parse the commands line parameters and print them
+    # Parse the command line parameters and print them
     config = parse_cmd_args()
     print_header()
     print("* Input parameters:")
@@ -871,12 +852,7 @@ def main():
 
     # perform either PDA or PDAW and plot
     if method == 'pda':
-        ics.sample_initial_conditions(
-            nsamples_ic=new_nsamples,
-            neg_handling=neg_handling,
-            preselect=preselect,
-            seed=seed,
-        )
+        ics.sample_initial_conditions(nsamples_ic=new_nsamples, neg_handling=neg_handling, preselect=preselect, seed=seed, )
         if plotting:
             plot_pda(ics)
 
@@ -886,6 +862,7 @@ def main():
             plot_pdaw(ics)
 
     print_footer()
+
 
 if __name__ == '__main__':
     main()
