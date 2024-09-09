@@ -1,1 +1,1 @@
-from .promdens import InitialConditions, main
+from .promdens import main
