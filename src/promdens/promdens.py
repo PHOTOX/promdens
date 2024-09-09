@@ -13,6 +13,7 @@
 # ///
 
 import argparse
+import dataclasses
 from pathlib import Path
 from timeit import default_timer as timer
 
@@ -80,6 +81,43 @@ def positive_float(str_value: str) -> float:
     if val <= 0:
         raise ValueError(f"'{val}' is not a positive real number")
     return val
+
+
+@dataclasses.dataclass
+class LaserPulse:
+    omega: float
+    fwhm: float
+    envelope_type: str
+    t0: float
+    lchirp: float
+    equation: str = dataclasses.field(init=False)
+
+    def __str__(self):
+        return (
+            f"Laser pulse parameters:\n"
+            f"  E(t) = {self.equation}\n"
+            f"  - envelope type = '{self.envelope_type}'\n"
+            f"  - omega = {self.omega:.6f} a.u.\n"
+            f"  - FWHM = {self.fwhm:.6f} a.u.\n"
+            f"  - t0 = {self.t0:.6f} a.u.\n"
+            f"  - chirp = {self.lchirp:.3e} a.u."
+        )
+
+    def __post_init__(self):
+        if self.envelope_type not in ENVELOPE_TYPES:
+            msg = f'Invalid envelope type "{self.envelope}"'
+            raise ValueError(msg)
+
+        if self.envelope_type == 'gauss':
+            self.equation = "exp(-2*ln(2)*(t-t0)^2/fwhm^2)*cos((omega+chirp*t)*t)"
+        elif self.envelope_type == 'lorentz':
+            self.equation = "(1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+chirp*t)*t)"
+        elif self.envelope == 'sech':
+            self.equation = "sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+chirp*t)*t)"
+        elif self.envelope == 'sin':
+            self.equation = "sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+chirp*t)*t) in range [t0-fwhm,t0+fwhm]"
+        elif self.envelope == 'sin2':
+            self.equation = "sin(pi/2*(t-t0+T)/T)^2*cos((omega+chirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm"
 
 
 class InitialConditions:
@@ -268,51 +306,38 @@ class InitialConditions:
         """
         return np.cos((self.field_omega + self.field_lchirp*t)*t)
 
-    def calc_field(self, omega, fwhm, t0=0.0, lchirp=0.0, envelope_type='gauss'):
+    def calc_field(self, pulse: LaserPulse) -> None:
         """
-        Calculating electric field E(t) and its spectrum E(w) with Fourier transform.
-        :param omega: frequency of the field (a.u.)
-        :param fwhm: full width at half maximum of the intensity envelope (a.u.)
-        :param t0: centre of the envelope in time (a.u.)
-        :param lchirp: linear chirp parameter [w = lchirp*t + omega] (a.u.)
-        :param envelope_type: envelope types: Gaussian, Lorentzian, sech, sin, sin^2
-        :return: store the electric field and the pulse spectrum
+        Calculate electric field E(t) and its spectrum E(w) with Fourier transform.
+
+        :param pulse: LaserPulse dataclass containing laser pulse parameters (frequency, fwhm...)
         """
+        self.field_omega = pulse.omega
+        self.field_lchirp = pulse.lchirp
+        self.field_envelope_type = pulse.envelope_type
+        self.field_t0 = pulse.t0
+        self.field_fwhm = pulse.fwhm
 
-        print(f"* Calculating laser pulse field using envelope type '{envelope_type}', omega={omega:.6f} a.u.,"
-              f" fwhm={fwhm:.6f} a.u., t0={t0:.6f} a.u., lchirp={lchirp:.3e} a.u.")
-        # saving field parameters in the class
-        self.field_omega = omega
-        self.field_lchirp = lchirp
-        self.field_envelope_type = envelope_type
-        self.field_t0 = t0
-        self.field_fwhm = fwhm
-
-        # print field function and determine maximum and minimum times for the field
+        # determine maximum and minimum times for the field
         if self.field_envelope_type == 'gauss':
-            print("  - E(t) = exp(-2*ln(2)*(t-t0)^2/fwhm^2)*cos((omega+lchirp*t)*t)")
             self.tmin, self.tmax = self.field_t0 - 2.4*self.field_fwhm, self.field_t0 + 2.4*self.field_fwhm
         elif self.field_envelope_type == 'lorentz':
-            print("  - E(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+lchirp*t)*t)")
             self.tmin, self.tmax = self.field_t0 - 8*self.field_fwhm, self.field_t0 + 8*self.field_fwhm
         elif self.field_envelope_type == 'sech':
-            print("  - E(t) = sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+lchirp*t)*t)")
             self.tmin, self.tmax = self.field_t0 - 4.4*self.field_fwhm, self.field_t0 + 4.4*self.field_fwhm
         elif self.field_envelope_type == 'sin':
-            print("  - E(t) = sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+lchirp*t)*t) in range [t0-fwhm,t0+fwhm]")
             self.tmin, self.tmax = self.field_t0 - self.field_fwhm, self.field_t0 + self.field_fwhm
         elif self.field_envelope_type == 'sin2':
-            print("  - E(t) = sin(pi/2*(t-t0+T)/T)^2*cos((omega+lchirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm")
             T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4)))*self.field_fwhm
             self.tmin, self.tmax = self.field_t0 - T, self.field_t0 + T
 
         # calculating the field
-        self.field_t = np.arange(self.tmin, self.tmax, 2*np.pi/omega/50)  # time array for the field in a.u.
+        self.field_t = np.arange(self.tmin, self.tmax, 2*np.pi/self.field_omega/50)  # time array for the field in a.u.
         self.field_envelope = self.calc_field_envelope(self.field_t)
         self.field = self.field_envelope*self.field_cos(self.field_t)
 
         # calculating the FT of the field (pulse spectrum)
-        dt = 2*np.pi/omega/50
+        dt = 2*np.pi/self.field_omega/50
         t_ft = np.arange(self.tmin - 20*self.field_fwhm, self.tmax + 20*self.field_fwhm, dt)  # setting up new time array with denser points for FT
         field = self.calc_field_envelope(t_ft)*self.field_cos(t_ft)
         self.field_ft = np.abs(np.fft.rfft(field))  # FT
@@ -804,7 +829,7 @@ def parse_cmd_args():
     parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results and save them as png images.")
     parser.add_argument("input_file", help="Input file name.")
 
-    return vars(parser.parse_args())
+    return parser.parse_args()
 
 
 def main():
@@ -812,65 +837,53 @@ def main():
     config = parse_cmd_args()
     print_header()
     print("* Input parameters:")
-    for item in config:
+    for key, value in vars(config).items():
         add = ''
-        if item == 'nsamples' and config[item] == 0:
+        if key == 'nsamples' and value == 0:
             add = '(All input data will be used)'
-        if config['method'] == 'pdaw' and item in ('npsamples', 'random_seed', 'preselect', 'neg_handling'):
+        if config.method == 'pdaw' and key in ('npsamples', 'random_seed', 'preselect', 'neg_handling'):
             continue
-        print(f"  - {item:20s}: {config[item]}   {add}")
-    method = config['method']
-    nsamples = config['nsamples']
-    new_nsamples = config['npsamples']
-    nstates = config['nstates']
-    plotting = config['plot']
-    energy_unit = config['energy_unit']
-    tdm_unit = config['tdm_unit']
-    fwhm = config['fwhm']
-    omega = config['omega']
-    lchirp = config['linear_chirp']
-    t0 = config['t0']
-    envelope_type = config['envelope_type']
-    neg_handling = config['neg_handling']
-    preselect = config['preselect']
-    seed = config['random_seed']
-    ftype = config['file_type']
-    fname = config['input_file']
+        print(f"  - {key:20s}: {value}   {add}")
 
-    # checking input
-    if not Path(fname).is_file():
-        print(f"ERROR: file '{fname}' not found!")
+    if not Path(config.input_file).is_file():
+        print(f"ERROR: file '{config.input_file}' not found!")
         exit(1)
 
-    # converting pulse input to a.t.u.
+    # convert pulse input to atomic units
     fstoau = 41.341374575751
-    t0 *= fstoau
-    fwhm *= fstoau
+    pulse = LaserPulse(
+        omega=config.omega,
+        fwhm=config.fwhm * fstoau,
+        envelope_type=config.envelope_type,
+        lchirp=config.linear_chirp,
+        t0=config.t0 * fstoau,
+    )
+    print(f"* {pulse}")
 
-    ics = InitialConditions(nsamples=nsamples, nstates=nstates, input_type=ftype)
+    ics = InitialConditions(nsamples=config.nsamples, nstates=config.nstates, input_type=config.file_type)
 
-    ics.read_input_data(fname=fname, energy_unit=energy_unit, tdm_unit=tdm_unit)
+    ics.read_input_data(fname=config.input_file, energy_unit=config.energy_unit, tdm_unit=config.tdm_unit)
 
     # calculating spectrum with nuclear ensemble approach
     ics.calc_spectrum()
 
-    if plotting:
+    if config.plot:
         plot_spectrum(ics)
 
     # calculating the field and its spectrum
-    ics.calc_field(omega=omega, fwhm=fwhm, t0=t0, lchirp=lchirp, envelope_type=envelope_type)
-    if plotting:
+    ics.calc_field(pulse=pulse)
+    if config.plot:
         plot_field(ics)
 
     # perform either PDA or PDAW and plot
-    if method == 'pda':
-        ics.sample_initial_conditions(nsamples_ic=new_nsamples, neg_handling=neg_handling, preselect=preselect, seed=seed, )
-        if plotting:
+    if config.method == 'pda':
+        ics.sample_initial_conditions(nsamples_ic=config.npsamples, neg_handling=config.neg_handling, preselect=config.preselect, seed=config.random_seed)
+        if config.plot:
             plot_pda(ics)
 
-    elif method == 'pdaw':
+    elif config.method == 'pdaw':
         ics.windowing()
-        if plotting:
+        if config.plot:
             plot_pdaw(ics)
 
     print_footer()
