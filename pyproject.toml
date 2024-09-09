@@ -1,0 +1,17 @@
+[project]
+name = "promdens"
+version = "0.1.0"
+description = "Promoted Density Approach for sampling initial conditions for trajectory-based nonadiabatic photodynamics"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "numpy>=1.15",
+    "matplotlib~=3.0",
+]
+
+[project.scripts]
+promdens = "promdens:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
