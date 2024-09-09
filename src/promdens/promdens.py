@@ -152,10 +152,6 @@ class InitialConditions:
         self.nsamples = nsamples
         self.nstates = nstates
         self.input_type = input_type
-        # flags for checking that everything was calculated in the right order
-        self.input_read = False
-        self.spectrum_calculated = False
-        self.field_calculated = False
         self.maxwell_fulfilled = False
 
     def read_input_data(self, fname: str, energy_unit: str, tdm_unit: str) -> None:
@@ -196,8 +192,6 @@ class InitialConditions:
 
         # converting energy and tdm units to a.u.
         self.convert_units(energy_unit=energy_unit, tdm_unit=tdm_unit)
-
-        self.input_read = True
 
     def convert_units(self, energy_unit: str, tdm_unit: str) -> None:
         """
@@ -242,11 +236,6 @@ class InitialConditions:
 
         print("* Calculating spectrum with the Nuclear Ensemble Approach.")
 
-        # checking if all the necessary preceding calculations were executed
-        if not self.input_read:
-            print("ERROR: Input hasn't been read yet. Please first use 'read_input_data()'!")
-            exit(1)
-
         # calculating coefficient for intensity of the spectrum
         eps0 = 8.854188e-12
         hbar = 6.626070e-34/(2*np.pi)
@@ -269,8 +258,6 @@ class InitialConditions:
 
         # calculating total spectrum (summing over all states)
         self.spectrum[-1] = np.sum(self.spectrum[1:-1], axis=0)
-
-        self.spectrum_calculated = True
 
     def calc_field_envelope(self, t):
         """
@@ -359,8 +346,6 @@ class InitialConditions:
             print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
             self.maxwell_fulfilled = True
 
-        self.field_calculated = True
-
     def pulse_wigner(self, tprime, de):
         """
         Wigner transform of the pulse. The current implementation uses the pulse envelope formulation to simplify calculations.
@@ -370,11 +355,6 @@ class InitialConditions:
         :param de: excitation energy (a.u.)
         :return: Wigner pulse transform
         """
-
-        if not self.field_calculated:
-            print("ERROR: Field not yet calculated. Please first use 'calc_field()'!")
-            exit(1)
-
         # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
         loc_omega = self.field_omega + 2*self.field_lchirp*tprime
         if de != loc_omega:
@@ -415,10 +395,6 @@ class InitialConditions:
         """
 
         print(f"* Sampling {nsamples_ic:d} initial conditions considering the laser pulse.")
-
-        if not self.input_read:
-            print("ERROR: Input hasn't been read yet. Please first use 'read_input_data()'!")
-            exit(1)
 
         def progress(percent, width, n, str=''):
             """Function to print progress of calculation."""
