@@ -8,7 +8,16 @@ def test_invalid_envelope_type(make_pulse):
     with pytest.raises(ValueError):
         make_pulse(envelope_type='invalid')
 
-#@pytest.mark.parametrize("envelope", ENVELOPE_TYPES)
+
+@pytest.mark.parametrize("envelope", ENVELOPE_TYPES)
+def test_envelope_types(make_pulse, envelope):
+    # For now just test that we can create a pulse
+    # for all available envelope types, more to come.
+    pulse = make_pulse(envelope_type=envelope)
+
+    assert envelope in str(pulse)
+
+
 def test_field_cos(make_pulse):
     pulse = make_pulse(lchirp=0.01, omega=0.1)
     t = np.array([0.0, 1.0, 10.0])
