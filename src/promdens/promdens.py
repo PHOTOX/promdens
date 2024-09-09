@@ -123,7 +123,7 @@ class LaserPulse:
         """
         Calculate oscillations of the electric field with the cos function.
 
-        :param t: array of time values
+        :param t: array of time values in atomic units
         :return: array of cos((w + lchirp*t)*t)
         """
         return np.cos((self.omega + self.lchirp * t) * t)
@@ -295,16 +295,6 @@ class InitialConditions:
                     field[k] = np.sin(np.pi/2*(t[k] - self.field_t0 + T)/T)**2
             return field
 
-    # TODO: Move to LaserPulse
-    @staticmethod
-    def field_cos(omega, lchirp, t):
-        """
-        Calculate oscillations of the field with the cos function.
-
-        :param t: array of time values
-        :return: array of cos((w + lchirp*t)*t)
-        """
-        return np.cos((omega + lchirp*t)*t)
 
     def calc_field(self, pulse: LaserPulse) -> None:
         """
@@ -335,12 +325,12 @@ class InitialConditions:
         # calculating the field
         self.field_t = np.arange(self.tmin, self.tmax, 2*np.pi/self.field_omega/50)  # time array for the field in a.u.
         self.field_envelope = self.calc_field_envelope(self.field_t)
-        self.field = self.field_envelope*self.field_cos(self.field_t)
+        self.field = self.field_envelope * self.pulse.field_cos(self.field_t)
 
         # calculating the FT of the field (pulse spectrum)
         dt = 2*np.pi/self.field_omega/50
         t_ft = np.arange(self.tmin - 20*self.field_fwhm, self.tmax + 20*self.field_fwhm, dt)  # setting up new time array with denser points for FT
-        field = self.calc_field_envelope(t_ft)*self.field_cos(t_ft)
+        field = self.calc_field_envelope(t_ft) * self.pulse.field_cos(t_ft)
         self.field_ft = np.abs(np.fft.rfft(field))  # FT
         self.field_ft /= np.max(self.field_ft)  # normalizing to have maximum at 0
         self.field_ft_omega = 2*np.pi*np.fft.rfftfreq(len(t_ft), dt)
