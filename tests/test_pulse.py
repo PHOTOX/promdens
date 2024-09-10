@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from inline_snapshot import snapshot
 
-from promdens.promdens import ENVELOPE_TYPES, LaserPulse
+from promdens.promdens import ENVELOPE_TYPES, InitialConditions, LaserPulse
 
 def test_invalid_envelope_type(make_pulse):
     with pytest.raises(ValueError):
@@ -96,3 +96,22 @@ def test_field_envelope(make_pulse, envelope_type):
     assert envelope[0] == s[envelope_type][0]
     assert envelope[1] == s[envelope_type][1]
     assert envelope[2] == s[envelope_type][2]
+
+@pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
+def test_new_versus_old_envelope(make_pulse, envelope_type):
+    fwhm = 20.
+    t0 = -1
+    pulse = make_pulse(fwhm=fwhm, t0=t0, envelope_type=envelope_type)
+    ic = InitialConditions()
+    t = np.array([-50, -10, -5.0, -1.0, 4.0, 10, 50])
+
+    new_envelope = pulse.calc_field_envelope(t)
+
+    ic.calc_field(pulse)
+    old_envelope = ic.calc_field_envelope(t)
+
+    for i, new in enumerate(new_envelope):
+        assert old_envelope[i] == new
+
+    print()
+    print(envelope_type, new_envelope)
