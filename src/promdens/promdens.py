@@ -268,7 +268,6 @@ class InitialConditions:
         # calculating total spectrum (summing over all states)
         self.spectrum[-1] = np.sum(self.spectrum[1:-1], axis=0)
 
-    # TODO: Move to LaserPulse
     def calc_field_envelope(self, t):
         """
         Calculating field envelope. The field parameters are taken form the class (stored with 'calc_field' function).
@@ -351,7 +350,6 @@ class InitialConditions:
             print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
             self.maxwell_fulfilled = True
 
-    # TODO: Move to LaserPulse
     def pulse_wigner(self, tprime, de):
         """
         Wigner transform of the pulse. The current implementation uses the pulse envelope formulation to simplify calculations.
