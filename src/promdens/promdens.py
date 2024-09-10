@@ -110,14 +110,23 @@ class LaserPulse:
 
         if self.envelope_type == 'gauss':
             self.equation = "exp(-2*ln(2)*(t-t0)^2/fwhm^2)*cos((omega+chirp*t)*t)"
+            extent = 2.4 * self.fwhm
         elif self.envelope_type == 'lorentz':
             self.equation = "(1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+chirp*t)*t)"
+            extent = 8 * self.fwhm
         elif self.envelope_type == 'sech':
             self.equation = "sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+chirp*t)*t)"
+            extent = 4.4 * self.fwhm
         elif self.envelope_type == 'sin':
             self.equation = "sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+chirp*t)*t) in range [t0-fwhm,t0+fwhm]"
+            extent = self.fwhm
         elif self.envelope_type == 'sin2':
             self.equation = "sin(pi/2*(t-t0+T)/T)^2*cos((omega+chirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm"
+            extent = 1 / (2 - 4/np.pi*np.arcsin(2**(-1/4))) * self.fwhm
+
+        self.tmin = self.t0 - extent
+        self.tmax = self.t0 + extent
+
 
     def field_cos(self, t: np.ndarray) -> np.ndarray:
         """
@@ -127,6 +136,42 @@ class LaserPulse:
         :return: array of cos((w + lchirp*t)*t)
         """
         return np.cos((self.omega + self.lchirp * t) * t)
+
+    def calc_field_envelope(self, t: np.ndarray) -> np.ndarray:
+        """
+        Calculate field envelope on a grid of time values.
+
+        :param t: array of time values (a.u.)
+        :return: array of envelope of the electric field
+        """
+        if self.envelope_type == 'gauss':
+
+            return np.exp(-2*np.log(2)*(t - self.t0)**2/self.fwhm**2)
+
+        elif self.envelope_type == 'lorentz':
+
+            return (1 + 4/(1 + np.sqrt(2))*((t - self.t0)/self.fwhm)**2)**-1
+
+        elif self.envelope_type == 'sech':
+
+            return 1/np.cosh(2*np.log(1 + np.sqrt(2))*(t - self.t0)/self.fwhm)
+
+        elif self.envelope_type == 'sin':
+
+            field = np.zeros(shape=np.shape(t))
+            for k in range(np.shape(t)[0]):
+                if t[k] >= self.tmin and t[k] <= self.tmax:
+                    field[k] = np.sin(np.pi/2*(t[k] - self.t0 + self.fwhm)/self.fwhm)
+            return field
+
+        elif self.envelope_type == 'sin2':
+
+            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4)))*self.fwhm
+            field = np.zeros(shape=np.shape(t))
+            for k in range(np.shape(t)[0]):
+                if t[k] >= self.tmin and t[k] <= self.tmax:
+                    field[k] = np.sin(np.pi/2*(t[k] - self.t0 + T)/T)**2
+            return field
 
 
 class InitialConditions:
