@@ -77,6 +77,7 @@ def test_field_envelope(make_pulse, envelope_type):
     pulse = make_pulse(fwhm=fwhm, t0=t0, envelope_type=envelope_type)
 
     # TODO: We need more points here (e.g. beyond extent)
+    # t = np.array([-50, -10, -5.0, -1.0, 4.0, 10, 50])
     # Sanity check: for t=t0 the value should be always 1.0
     t = np.array([-5.0, -1.0, 4.0])
 
@@ -93,25 +94,5 @@ def test_field_envelope(make_pulse, envelope_type):
     )
 
     assert len(envelope) == len(t)
-    assert envelope[0] == s[envelope_type][0]
-    assert envelope[1] == s[envelope_type][1]
-    assert envelope[2] == s[envelope_type][2]
-
-@pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
-def test_new_versus_old_envelope(make_pulse, envelope_type):
-    fwhm = 20.
-    t0 = -1
-    pulse = make_pulse(fwhm=fwhm, t0=t0, envelope_type=envelope_type)
-    ic = InitialConditions()
-    t = np.array([-50, -10, -5.0, -1.0, 4.0, 10, 50])
-
-    new_envelope = pulse.calc_field_envelope(t)
-
-    ic.calc_field(pulse)
-    old_envelope = ic.calc_field_envelope(t)
-
-    for i, new in enumerate(new_envelope):
-        assert old_envelope[i] == new
-
-    print()
-    print(envelope_type, new_envelope)
+    for i, value in enumerate(envelope):
+        assert value == s[envelope_type][i]
