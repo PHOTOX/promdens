@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_COLOR: 1
+
 jobs:
   test:
     strategy:
@@ -36,10 +39,13 @@ jobs:
         uv run src/promdens/promdens.py --plot --method=pdaw -lch 0.001 --omega 0.2 --fwhm 5.0 -ns 3 -eu "eV" --npsamples 5 tests/test_data.txt
 
     - name: Install package
-      run: uv pip install --system -e .
+      run: uv pip install --system -e .[tests]
 
-    - name: Run tests from installed package
+    - name: Run smoke tests from installed package
       run: |
         promdens --help
         promdens --plot --omega 0.2 --fwhm 5.0 -lch 0.001 -ns 3 -eu "eV" --npsamples 5 tests/test_data.txt
         promdens --plot --method=pdaw -lch 0.001 --omega 0.2 --fwhm 5.0 -ns 3 -eu "eV" --npsamples 5 tests/test_data.txt
+
+    - name: Run unit tests
+      run: pytest -v

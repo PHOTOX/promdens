@@ -12,6 +12,12 @@ dependencies = [
 [project.scripts]
 promdens = "promdens:main"
 
+[project.optional-dependencies]
+tests = [
+    "inline-snapshot",
+    "pytest>=7.4",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
