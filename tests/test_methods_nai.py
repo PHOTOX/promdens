@@ -13,14 +13,14 @@ def test_pdaw_nai(make_pulse):
     ics.read_input_data(fname='tests/NaI_reference/test_data_nai.dat', energy_unit='a.u.', tdm_unit='a.u.')
 
     fstoau = 41.341374575751
-    pulse = LaserPulse(omega=0.14294844, fwhm=100*fstoau, envelope_type='gauss', lchirp=2e-6, t0=0)
+    pulse = LaserPulse(omega=0.13520905, fwhm=20*fstoau, envelope_type='gauss', lchirp=0, t0=0)
 
     ics.calc_field(pulse=pulse)
 
     ics.windowing()
 
     # the following command was used to generate the reference
-    # todo: use different pulse
+    # promdens -m pdaw -n 1000 -w 0.13520905 -f 20 test_data_nai.dat
     # the reference was compared to exact QD
     reference = np.genfromtxt('tests/NaI_reference/test_pdaw_reference.dat').T[1]
     weights = ics.weights[0]
@@ -55,4 +55,4 @@ def test_pda_nai(make_pulse):
         # comparing indexes
         assert pda[0, i] == reference[0, i]
         # comparing excitation times
-        assert pda[1, i] == reference[1, i]
+        assert np.round(pda[1, i], decimals=16) == np.round(reference[1, i], decimals=16)
