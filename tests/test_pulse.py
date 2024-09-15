@@ -129,8 +129,29 @@ def test_field_envelope(make_pulse, envelope_type):
             },
         }
     )
+    s_tmin = snapshot(
+        {
+            "gauss": -36.0,
+            "lorentz": -120.0,
+            "sech": -66.0,
+            "sin": -15.0,
+            "sin2": -20.60118862336883,
+        }
+    )
+    s_tmax = snapshot(
+        {
+            "gauss": 36.0,
+            "lorentz": 120.0,
+            "sech": 66.0,
+            "sin": 15.0,
+            "sin2": 20.60118862336883,
+        }
+    )
 
     assert len(envelope) == len(t)
+
+    assert pulse.tmin == s_tmin[envelope_type]
+    assert pulse.tmax == s_tmax[envelope_type]
 
     # Maximum at t0 is always 1.0
     assert envelope[3] == 1.0
@@ -202,7 +223,30 @@ def test_field_envelope_shifted(make_pulse, envelope_type):
         }
     )
 
+    s_tmin = snapshot(
+        {
+            "gauss": -46.0,
+            "lorentz": -158.0,
+            "sech": -86.0,
+            "sin": -18.0,
+            "sin2": -25.468251497825108,
+        }
+    )
+    s_tmax = snapshot(
+        {
+            "gauss": 50.0,
+            "lorentz": 162.0,
+            "sech": 90.0,
+            "sin": 22.0,
+            "sin2": 29.468251497825108,
+        }
+    )
+
     assert len(envelope) == len(t)
+
+    assert pulse.tmin == s_tmin[envelope_type]
+    assert pulse.tmax == s_tmax[envelope_type]
+
     # Maximum at t0 is always 1.0
     assert envelope[3] == 1.0
     for i, value in enumerate(envelope):
