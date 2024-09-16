@@ -30,9 +30,9 @@ def test_pdaw_nai(tmp_path):
     weights = ics.weights[0]
 
     assert len(weights) == len(weights)
-    # comparing all weights, the threshold 1e-17 was based on numerical differences created by switching between numpy 1.26 and 2.1
+    # comparing all weights, the threshold 1e-15 was based on numerical differences created by switching between numpy 1.26 and 2.1
     for i in range(len(weights)):
-        assert (weights[i] - reference[i]) < 1e-17, f"pdaw weight[{i}] does not match: delta={weights[i] - reference[i]}"
+        assert (weights[i] - reference[i]) < 1e-15, f"pdaw weight[{i}] does not match: delta={weights[i] - reference[i]}"
 
 
 def test_pda_nai(tmp_path):
