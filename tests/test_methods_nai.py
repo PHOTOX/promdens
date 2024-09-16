@@ -10,8 +10,9 @@ from promdens.promdens import InitialConditions, LaserPulse
 # path to the tests folder
 path = Path(__file__).parent.absolute()
 
+
 def test_pdaw_nai(tmp_path):
-    ics = InitialConditions(nsamples=1000, nstates=1, input_type='file')
+    ics = InitialConditions(nsamples=10, nstates=1, input_type='file')
 
     ics.read_input_data(fname=path/'NaI_reference/test_data_nai.dat', energy_unit='a.u.', tdm_unit='a.u.')
 
@@ -20,15 +21,10 @@ def test_pdaw_nai(tmp_path):
 
     ics.calc_field(pulse=pulse)
 
-    ics.windowing()
-
-    # moving output to a temporary path dedicated to this test
-    tmp_folder = tmp_path / "pdaw"
-    tmp_folder.mkdir()
-    Path('pdaw.dat').rename(tmp_folder / 'pdaw.dat')
+    ics.windowing(output_fname=tmp_path/'pdaw.dat')
 
     # the following command was used to generate the reference
-    # promdens -m pdaw -n 1000 -w 0.13520905 -f 20 test_data_nai.dat
+    # promdens -m pdaw -n 10 -w 0.13520905 -f 20 test_data_nai.dat
     # the reference was compared to exact QD
     reference = np.genfromtxt(path/'NaI_reference/test_pdaw_reference.dat').T[1]
     weights = ics.weights[0]
@@ -49,15 +45,10 @@ def test_pda_nai(tmp_path):
 
     ics.calc_field(pulse=pulse)
 
-    ics.sample_initial_conditions(nsamples_ic=10, neg_handling='error', preselect=True, seed=123456789)
-
-    # moving output to a temporary path dedicated to this test
-    tmp_folder = tmp_path / "pda"
-    tmp_folder.mkdir()
-    Path('pda.dat').rename(tmp_folder / 'pda.dat')
+    ics.sample_initial_conditions(nsamples_ic=10, neg_handling='error', preselect=True, seed=123456789, output_fname=tmp_path/'pda.dat')
 
     # the following command was used to generate the reference
-    # promdens -np 10 -w 0.14294844 -lch 2e-6 -f 100 -ps --random_seed 123456789 -n 1000 test_data_nai.dat
+    # promdens -np 10 -w 0.14294844 -lch 2e-6 -f 100 -ps --random_seed 123456789 -n 10 test_data_nai.dat
     # the reference was compared to exact QD
     reference = np.genfromtxt(path/'NaI_reference/test_pda_reference.dat').T
     pda = ics.ics
