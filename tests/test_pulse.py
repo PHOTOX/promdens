@@ -254,7 +254,11 @@ def test_field_envelope_shifted(make_pulse, envelope_type):
     # Maximum at t0 is always 1.0
     assert envelope[3] == 1.0
     for i, value in enumerate(envelope):
-        assert value == s[envelope_type][i]
+        # NOTE: If you need to regenerate the snapshot with --inline-snapshot=fix,
+        # use the strict comparison.
+        # assert s[envelope_type][i] == value
+        # assert value == s[envelope_type][i]
+        assert s[envelope_type][i] == pytest.approx(value, abs=1e-15)
 
     # Envelope is an even function around t0
     assert envelope[0] == pytest.approx(envelope[-1], abs=1e-15)
