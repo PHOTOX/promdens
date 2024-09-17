@@ -159,9 +159,10 @@ def test_field_envelope(make_pulse, envelope_type):
         assert value == s[envelope_type][i]
 
     assert envelope[0] == envelope[-1]
-    if envelope_type not in  ("sin", "sin2"):
-        assert envelope[1] == envelope[-2]
-        assert envelope[2] == envelope[-3]
+    # TODO: Account for numerical differences
+    #if envelope_type not in  ("sin", "sin2"):
+    assert envelope[1] == envelope[-2]
+    assert envelope[2] == envelope[-3]
 
 
 @pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
@@ -255,7 +256,7 @@ def test_field_envelope_shifted(make_pulse, envelope_type):
 
     # envelope an even function so is symmetrical around t0
     assert envelope[0] == envelope[-1]
-    # There are minor numerical differences with sin and sin2 envelopes
-    if envelope_type not in  ("sin", "sin2"):
-        assert envelope[1] == envelope[-2]
-        assert envelope[2] == envelope[-3]
+    # TODO: There are minor numerical differences with sin and sin2 envelopes
+    # if envelope_type not in  ("sin", "sin2"):
+    assert envelope[1] == envelope[-2]
+    assert envelope[2] == envelope[-3]
