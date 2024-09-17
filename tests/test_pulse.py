@@ -72,7 +72,7 @@ def test_field_cos_with_chirp(make_pulse):
 
 @pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
 def test_field_envelope(make_pulse, envelope_type):
-    fwhm = 15.
+    fwhm = 15.0
     t0 = 0
     pulse = make_pulse(fwhm=fwhm, t0=t0, envelope_type=envelope_type)
 
@@ -158,16 +158,15 @@ def test_field_envelope(make_pulse, envelope_type):
     for i, value in enumerate(envelope):
         assert value == s[envelope_type][i]
 
-    assert envelope[0] == envelope[-1]
-    # TODO: Account for numerical differences
-    #if envelope_type not in  ("sin", "sin2"):
-    assert envelope[1] == envelope[-2]
-    assert envelope[2] == envelope[-3]
+    # Envelope is an even function around t0
+    assert envelope[0] == pytest.approx(envelope[-1], abs=1e-15)
+    assert envelope[1] == pytest.approx(envelope[-2], abs=1e-15)
+    assert envelope[2] == pytest.approx(envelope[-3], abs=1e-15)
 
 
 @pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
 def test_field_envelope_shifted(make_pulse, envelope_type):
-    fwhm = 20.
+    fwhm = 20.0
     t0 = 2.0
     pulse = make_pulse(fwhm=fwhm, t0=t0, envelope_type=envelope_type)
 
@@ -254,9 +253,7 @@ def test_field_envelope_shifted(make_pulse, envelope_type):
     for i, value in enumerate(envelope):
         assert value == s[envelope_type][i]
 
-    # envelope an even function so is symmetrical around t0
-    assert envelope[0] == envelope[-1]
-    # TODO: There are minor numerical differences with sin and sin2 envelopes
-    # if envelope_type not in  ("sin", "sin2"):
-    assert envelope[1] == envelope[-2]
-    assert envelope[2] == envelope[-3]
+    # Envelope is an even function around t0
+    assert envelope[0] == pytest.approx(envelope[-1], abs=1e-15)
+    assert envelope[1] == pytest.approx(envelope[-2], abs=1e-15)
+    assert envelope[2] == pytest.approx(envelope[-3], abs=1e-15)
