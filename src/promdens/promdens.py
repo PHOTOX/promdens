@@ -96,15 +96,13 @@ class LaserPulse:
     tmax: float = dataclasses.field(init=False)
 
     def __str__(self):
-        return (
-            f"Laser pulse parameters:\n"
-            f"  E(t) = {self.equation}\n"
-            f"  - envelope type = '{self.envelope_type}'\n"
-            f"  - omega = {self.omega:.6f} a.u.\n"
-            f"  - FWHM = {self.fwhm:.6f} a.u.\n"
-            f"  - t0 = {self.t0:.6f} a.u.\n"
-            f"  - chirp = {self.lchirp:.3e} a.u."
-        )
+        return (f"Laser pulse parameters:\n"
+                f"  E(t) = {self.equation}\n"
+                f"  - envelope type = '{self.envelope_type}'\n"
+                f"  - omega = {self.omega:.6f} a.u.\n"
+                f"  - FWHM = {self.fwhm:.6f} a.u.\n"
+                f"  - t0 = {self.t0:.6f} a.u.\n"
+                f"  - chirp = {self.lchirp:.3e} a.u.")
 
     def __post_init__(self):
         if self.envelope_type not in ENVELOPE_TYPES:
@@ -138,7 +136,7 @@ class LaserPulse:
         :param t: array of time values in atomic units
         :return: array of cos((w + lchirp*t)*t)
         """
-        return np.cos((self.omega + self.lchirp * t) * t)
+        return np.cos((self.omega + self.lchirp*t)*t)
 
     def calc_field_envelope(self, t: np.ndarray) -> np.ndarray:
         """
@@ -316,6 +314,7 @@ class InitialConditions:
         # calculating total spectrum (summing over all states)
         self.spectrum[-1] = np.sum(self.spectrum[1:-1], axis=0)
 
+
     def calc_field(self, pulse: LaserPulse) -> None:
         """
         Calculate electric field E(t) and its spectrum E(w) with Fourier transform.
@@ -337,7 +336,7 @@ class InitialConditions:
         # calculating the field
         self.field_t = np.arange(self.tmin, self.tmax, 2*np.pi/self.field_omega/50)  # time array for the field in a.u.
         self.field_envelope = self.pulse.calc_field_envelope(self.field_t)
-        self.field = self.field_envelope * self.pulse.field_cos(self.field_t)
+        self.field = self.field_envelope*self.pulse.field_cos(self.field_t)
 
         # calculating the FT of the field (pulse spectrum)
         dt = 2*np.pi/self.field_omega/50
@@ -404,7 +403,7 @@ class InitialConditions:
 
         return integral
 
-    def sample_initial_conditions(self, nsamples_ic, neg_handling, preselect, seed=None):
+    def sample_initial_conditions(self, nsamples_ic: int, neg_handling: str, preselect: bool, seed=None, output_fname='pda.dat'):
         """
         Sample time-dependent initial conditions using the Promoted Density Approach.
         :param nsamples_ic: number of initial conditions to be sampled
@@ -509,7 +508,7 @@ class InitialConditions:
                 print(f"  - State {state + 1} - {unique_states[state]} unique ICs to be propagated: \n   ", *np.array(unique[state], dtype=str))
 
         # save the selected samples
-        np.savetxt('pda.dat', samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'],
+        np.savetxt(output_fname, samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'],
                    header=f"Sampling: number of ICs = {nsamples_ic:d}, number of unique ICs = {np.sum(unique_states):d}\n"
                           f"Field parameters: omega = {self.field_omega:.5e} a.u., "
                           f"linear_chirp = {self.field_lchirp:.5e} a.u., fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
@@ -517,7 +516,7 @@ class InitialConditions:
                           f"index        exc. time (a.u.)   el. state     dE (a.u.)       |tdm| (a.u.)")
         print("  - Output saved to file 'pda.dat'.")
 
-    def windowing(self):
+    def windowing(self, output_fname='pdaw.dat'):
         """
         Performs Promoted Density Approach for Windowing (PDAW). The function calculates normalized weights and outputs
         the convolution functions I(t).
@@ -564,7 +563,7 @@ class InitialConditions:
         arr_print[0, :] = self.traj_index
         arr_print[1:, :] = self.weights
 
-        np.savetxt('pdaw.dat', arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates,
+        np.savetxt(output_fname, arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates,
                    header=f"Convolution: '{self.conv}'\nParameters:  fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
                           f"t0 = {self.field_t0/self.fstoau:.3f} fs\n"
                           f"index        " + str(' '*8).join([f"weight S{s + 1:d}" for s in range(self.nstates)]))
@@ -716,7 +715,7 @@ def plot_pda(ics: InitialConditions) -> None:
     axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100), cmap=plt.cm.viridis, density=True, )
     if ics.field_lchirp != 0:
         axs.plot((ics.field_omega + 2*ics.field_lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color="white", linestyle="--",
-            label=r"$\omega(t)$", )
+                 label=r"$\omega(t)$", )
         axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
 
     ax_histy = fig.add_axes(rect_histy, sharey=axs)
@@ -796,17 +795,17 @@ def parse_cmd_args():
 
     inp_file = parser.add_argument_group("Input file handling")
     inp_file.add_argument("-n", "--nsamples", default=0, type=positive_int,
-                        help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
+                          help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
     inp_file.add_argument("-ns", "--nstates", default=1, type=positive_int, help="Number of excited states considered.")
     inp_file.add_argument("-eu", "--energy_unit", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
     inp_file.add_argument("-tu", "--tdm_unit", choices=TDM_UNITS, default='a.u.',
-                        help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
+                          help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
     inp_file.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
 
     field = parser.add_argument_group('Field parameters')
     field.add_argument("-w", "--omega", required=True, type=positive_float, help="Frequency of the field in a.u.")
     field.add_argument("-f", "--fwhm", required=True, type=positive_float,
-                        help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
+                       help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
     field.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
     field.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
     field.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
@@ -844,13 +843,8 @@ def main():
 
     # convert pulse input to atomic units
     fstoau = 41.341374575751
-    pulse = LaserPulse(
-        omega=config.omega,
-        fwhm=config.fwhm * fstoau,
-        envelope_type=config.envelope_type,
-        lchirp=config.linear_chirp,
-        t0=config.t0 * fstoau,
-    )
+    pulse = LaserPulse(omega=config.omega, fwhm=config.fwhm*fstoau, envelope_type=config.envelope_type, lchirp=config.linear_chirp,
+                       t0=config.t0*fstoau, )
     print(f"* {pulse}")
 
     ics = InitialConditions(nsamples=config.nsamples, nstates=config.nstates, input_type=config.file_type)
@@ -870,7 +864,8 @@ def main():
 
     # perform either PDA or PDAW and plot
     if config.method == 'pda':
-        ics.sample_initial_conditions(nsamples_ic=config.npsamples, neg_handling=config.neg_handling, preselect=config.preselect, seed=config.random_seed)
+        ics.sample_initial_conditions(nsamples_ic=config.npsamples, neg_handling=config.neg_handling, preselect=config.preselect,
+                                      seed=config.random_seed)
         if config.plot:
             plot_pda(ics)
 

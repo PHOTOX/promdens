@@ -1,6 +1,10 @@
 [project]
 name = "promdens"
 version = "0.1.0"
+authors = [
+  { name="Jiri Janos", email="jiri.janos98@gmail.com" },
+  { name="Daniel Hollas", email="danekhollas@gmail.com" },
+]
 description = "Promoted Density Approach for sampling initial conditions for trajectory-based nonadiabatic photodynamics"
 readme = "README.md"
 requires-python = ">=3.7"
