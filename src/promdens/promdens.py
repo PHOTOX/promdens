@@ -329,12 +329,14 @@ class InitialConditions:
         self.field_fwhm = pulse.fwhm
 
         # determine maximum and minimum times for the field
+        # TODO: Test this
         self.tmin = self.pulse.tmin
         self.tmax = self.pulse.tmax
 
         # calculating the field
         self.field_t = np.arange(self.tmin, self.tmax, 2*np.pi/self.field_omega/50)  # time array for the field in a.u.
-        self.field = self.pulse.calc_field_envelope(self.field_t) * self.pulse.field_cos(self.field_t)
+        self.field_envelope = self.pulse.calc_field_envelope(self.field_t)
+        self.field = self.field_envelope*self.pulse.field_cos(self.field_t)
 
         # calculating the FT of the field (pulse spectrum)
         dt = 2*np.pi/self.field_omega/50
