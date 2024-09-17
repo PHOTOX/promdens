@@ -255,7 +255,7 @@ def test_field_envelope_shifted(make_pulse, envelope_type):
     assert pulse.tmax == s_tmax[envelope_type]
     assert pulse.tmin < t0
     assert pulse.tmax > t0
-    assert pulse.tmin == -pulse.tmax
+    assert t0 - pulse.tmin == pulse.tmax - t0
 
     # Maximum at t0 is always 1.0
     assert envelope[3] == 1.0
