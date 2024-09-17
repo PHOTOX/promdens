@@ -25,3 +25,9 @@ tests = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    # See https://github.com/PHOTOX/promdens/issues/9
+    "ignore:`trapz` is deprecated.*:DeprecationWarning:",
+]
