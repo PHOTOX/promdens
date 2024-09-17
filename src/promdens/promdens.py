@@ -322,14 +322,12 @@ class InitialConditions:
         :param pulse: LaserPulse dataclass containing laser pulse parameters (frequency, fwhm...)
         """
         self.pulse = pulse
+        # TODO: Remove all these extra assignments
         self.field_omega = pulse.omega
         self.field_lchirp = pulse.lchirp
         self.field_envelope_type = pulse.envelope_type
         self.field_t0 = pulse.t0
         self.field_fwhm = pulse.fwhm
-
-        # determine maximum and minimum times for the field
-        # TODO: Test this
         self.tmin = self.pulse.tmin
         self.tmax = self.pulse.tmax
 
