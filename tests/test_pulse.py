@@ -156,7 +156,7 @@ def test_field_envelope(make_pulse, envelope_type):
     # Maximum at t0 is always 1.0
     assert envelope[3] == 1.0
     for i, value in enumerate(envelope):
-        assert value == s[envelope_type][i], f"delta = {value - float(s[envelope_type][i])}"
+        assert value == s[envelope_type][i]
 
     assert envelope[0] == envelope[-1]
     if envelope_type not in  ("sin", "sin2"):
@@ -251,7 +251,7 @@ def test_field_envelope_shifted(make_pulse, envelope_type):
     # Maximum at t0 is always 1.0
     assert envelope[3] == 1.0
     for i, value in enumerate(envelope):
-        assert value == s[envelope_type][i], f"delta = {value - float(s[envelope_type][i])}"
+        assert value == s[envelope_type][i]
 
     # envelope an even function so is symmetrical around t0
     assert envelope[0] == envelope[-1]
