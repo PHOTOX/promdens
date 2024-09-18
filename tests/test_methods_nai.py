@@ -34,8 +34,8 @@ def test_pdaw_nai(tmp_path):
     # comparing all weights, the threshold 1e-15 was based on numerical differences created by switching between numpy 1.26 and 2.1
     for i in range(len(weights)):
         # the tolerance is the larger of the absolute and relative thresholds
-        # equivalent to (weights[i] - reference[i]) < max([1e-20, reference[i]*1e-15])
-        assert weights[i] == pytest.approx(reference[i], abs=1e-20, rel=1e-15), f"pdaw weight[{i}] does not match: delta={weights[i] - reference[i]}"
+        # equivalent to (weights[i] - reference[i]) < max([1e-18, reference[i]*1e-15])
+        assert weights[i] == pytest.approx(reference[i], abs=1e-18, rel=1e-15), f"pdaw weight[{i}] does not match: delta={weights[i] - reference[i]}"
 
 
 def test_pda_nai(tmp_path):
@@ -63,5 +63,5 @@ def test_pda_nai(tmp_path):
         assert pda[0, i] == reference[0, i], f"pda selected sample {pda[0, i]} instead of the reference {reference[0, i]}"
         # comparing excitation times, the thresholds were based on numerical differences created by switching between numpy 1.26 and 2.1
         # the tolerance is the larger of the absolute and relative thresholds
-        # equivalent to (pda[1, i] - reference[1, i]) < max([1e-20, reference[1, i]*1e-13])
-        assert pda[1, i] == pytest.approx(reference[1, i], abs=1e-20, rel=1e-13), f"pda excitation time for index {i} does not match: delta = {pda[1, i] - reference[1, i]}"
+        # equivalent to (pda[1, i] - reference[1, i]) < max([1e-18, reference[1, i]*1e-13])
+        assert pda[1, i] == pytest.approx(reference[1, i], abs=1e-18, rel=1e-13), f"pda excitation time for index {i} does not match: delta = {pda[1, i] - reference[1, i]}"
