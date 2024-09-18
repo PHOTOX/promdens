@@ -4,6 +4,7 @@ We use NaI as an example with two different laser pulses. If this test fails, th
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from promdens.promdens import InitialConditions, LaserPulse
 
@@ -32,7 +33,9 @@ def test_pdaw_nai(tmp_path):
     assert len(weights) == len(weights)
     # comparing all weights, the threshold 1e-15 was based on numerical differences created by switching between numpy 1.26 and 2.1
     for i in range(len(weights)):
-        assert (weights[i] - reference[i]) < 1e-15, f"pdaw weight[{i}] does not match: delta={weights[i] - reference[i]}"
+        # the tolerance is the larger of the absolute and relative thresholds
+        # equivalent to (weights[i] - reference[i]) < max([1e-18, reference[i]*1e-15])
+        assert weights[i] == pytest.approx(reference[i], abs=1e-18, rel=1e-15), f"pdaw weight[{i}] does not match: delta={weights[i] - reference[i]}"
 
 
 def test_pda_nai(tmp_path):
@@ -57,6 +60,8 @@ def test_pda_nai(tmp_path):
     # testing all generated ICs, same indexes and excitation times are required
     for i in range(len(pda)):
         # comparing indexes
-        assert pda[0, i] == reference[0, i]
-        # comparing excitation times, the threshold 1e-12 was based on numerical differences created by switching between numpy 1.26 and 2.1
-        assert (pda[1, i] - reference[1, i]) < 1e-12, f"pda excitation time for index {i} does not match: delta = {pda[1, i] - reference[1, i]}"
+        assert pda[0, i] == reference[0, i], f"pda selected sample {pda[0, i]} instead of the reference {reference[0, i]}"
+        # comparing excitation times, the thresholds were based on numerical differences created by switching between numpy 1.26 and 2.1
+        # the tolerance is the larger of the absolute and relative thresholds
+        # equivalent to (pda[1, i] - reference[1, i]) < max([1e-18, reference[1, i]*1e-13])
+        assert pda[1, i] == pytest.approx(reference[1, i], abs=1e-18, rel=1e-13), f"pda excitation time for index {i} does not match: delta = {pda[1, i] - reference[1, i]}"
