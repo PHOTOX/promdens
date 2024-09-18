@@ -12,7 +12,7 @@ fwhm = 10  # in fs
 omega = 1  # in a.u.
 lchirp = 0  # in a.u.
 t0 = 0  # in fs
-envelope_types = [ENVELOPE_TYPES[i] for i in [3, 4, 0, 2, 1]]  # sorting the list from the shortest to the longest pulses, it makes nice plots
+envelope_types = ['sin', 'sin2', 'gauss', 'sech', 'lorentz']
 
 # conversion of units
 evtoau = 0.036749405469679
@@ -27,6 +27,10 @@ fig, axs = plt.subplots(2, 2, figsize=(7, 7))
 
 for i in range(len(envelope_types)):
     envelope_type = envelope_types[i]
+
+    if not envelope_type in ENVELOPE_TYPES:
+        print(f"ERROR: envelope type '{envelope_type}' not available in promdens.py")
+        exit(1)
 
     pulse = LaserPulse(omega=omega, fwhm=fwhm, t0=t0, lchirp=lchirp, envelope_type=envelope_type)
     field = InitialConditions()
