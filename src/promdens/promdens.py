@@ -90,7 +90,10 @@ class LaserPulse:
     envelope_type: str
     t0: float
     lchirp: float
+
     equation: str = dataclasses.field(init=False)
+    tmin: float = dataclasses.field(init=False)
+    tmax: float = dataclasses.field(init=False)
 
     def __str__(self):
         return (f"Laser pulse parameters:\n"
@@ -108,14 +111,23 @@ class LaserPulse:
 
         if self.envelope_type == 'gauss':
             self.equation = "exp(-2*ln(2)*(t-t0)^2/fwhm^2)*cos((omega+chirp*t)*t)"
+            extent = 2.4 * self.fwhm
         elif self.envelope_type == 'lorentz':
             self.equation = "(1+4/(1+sqrt(2))*(t/fwhm)^2)^-1*cos((omega+chirp*t)*t)"
+            extent = 8 * self.fwhm
         elif self.envelope_type == 'sech':
             self.equation = "sech(2*ln(1+sqrt(2))*t/fwhm)*cos((omega+chirp*t)*t)"
+            extent = 4.4 * self.fwhm
         elif self.envelope_type == 'sin':
             self.equation = "sin(pi/2*(t-t0+fwhm)/fwhm)*cos((omega+chirp*t)*t) in range [t0-fwhm,t0+fwhm]"
+            extent = self.fwhm
         elif self.envelope_type == 'sin2':
             self.equation = "sin(pi/2*(t-t0+T)/T)^2*cos((omega+chirp*t)*t) in range [t0-T,t0+T] where T=1.373412575*fwhm"
+            extent = 1 / (2 - 4/np.pi*np.arcsin(2**(-1/4))) * self.fwhm
+
+        self.tmin = self.t0 - extent
+        self.tmax = self.t0 + extent
+
 
     def field_cos(self, t: np.ndarray) -> np.ndarray:
         """
@@ -125,6 +137,42 @@ class LaserPulse:
         :return: array of cos((w + lchirp*t)*t)
         """
         return np.cos((self.omega + self.lchirp*t)*t)
+
+    def calc_field_envelope(self, t: np.ndarray) -> np.ndarray:
+        """
+        Calculate field envelope on a grid of time values.
+
+        :param t: array of time values (a.u.)
+        :return: array of envelope of the electric field
+        """
+        if self.envelope_type == 'gauss':
+
+            return np.exp(-2*np.log(2)*(t - self.t0)**2/self.fwhm**2)
+
+        elif self.envelope_type == 'lorentz':
+
+            return (1 + 4/(1 + np.sqrt(2))*((t - self.t0)/self.fwhm)**2)**-1
+
+        elif self.envelope_type == 'sech':
+
+            return 1/np.cosh(2*np.log(1 + np.sqrt(2))*(t - self.t0)/self.fwhm)
+
+        elif self.envelope_type == 'sin':
+
+            field = np.zeros(shape=np.shape(t))
+            for k in range(np.shape(t)[0]):
+                if t[k] >= self.tmin and t[k] <= self.tmax:
+                    field[k] = np.sin(np.pi/2*(t[k] - self.t0 + self.fwhm)/self.fwhm)
+            return field
+
+        elif self.envelope_type == 'sin2':
+
+            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4)))*self.fwhm
+            field = np.zeros(shape=np.shape(t))
+            for k in range(np.shape(t)[0]):
+                if t[k] >= self.tmin and t[k] <= self.tmax:
+                    field[k] = np.sin(np.pi/2*(t[k] - self.t0 + T)/T)**2
+            return field
 
 
 class InitialConditions:
@@ -266,31 +314,6 @@ class InitialConditions:
         # calculating total spectrum (summing over all states)
         self.spectrum[-1] = np.sum(self.spectrum[1:-1], axis=0)
 
-    def calc_field_envelope(self, t):
-        """
-        Calculating field envelope. The field parameters are taken form the class (stored with 'calc_field' function).
-        :param t: time axis (a.u.)
-        :return: envelope of the field
-        """
-        if self.field_envelope_type == 'gauss':
-            return np.exp(-2*np.log(2)*(t - self.field_t0)**2/self.field_fwhm**2)
-        elif self.field_envelope_type == 'lorentz':
-            return (1 + 4/(1 + np.sqrt(2))*((t - self.field_t0)/self.field_fwhm)**2)**-1
-        elif self.field_envelope_type == 'sech':
-            return 1/np.cosh(2*np.log(1 + np.sqrt(2))*(t - self.field_t0)/self.field_fwhm)
-        elif self.field_envelope_type == 'sin':
-            field = np.zeros(shape=np.shape(t))
-            for k in range(np.shape(t)[0]):
-                if t[k] >= self.tmin and t[k] <= self.tmax:
-                    field[k] = np.sin(np.pi/2*(t[k] - self.field_t0 + self.field_fwhm)/self.field_fwhm)
-            return field
-        elif self.field_envelope_type == 'sin2':
-            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4)))*self.field_fwhm
-            field = np.zeros(shape=np.shape(t))
-            for k in range(np.shape(t)[0]):
-                if t[k] >= self.tmin and t[k] <= self.tmax:
-                    field[k] = np.sin(np.pi/2*(t[k] - self.field_t0 + T)/T)**2
-            return field
 
     def calc_field(self, pulse: LaserPulse) -> None:
         """
@@ -299,34 +322,24 @@ class InitialConditions:
         :param pulse: LaserPulse dataclass containing laser pulse parameters (frequency, fwhm...)
         """
         self.pulse = pulse
+        # TODO: Remove all these extra assignments
         self.field_omega = pulse.omega
         self.field_lchirp = pulse.lchirp
         self.field_envelope_type = pulse.envelope_type
         self.field_t0 = pulse.t0
         self.field_fwhm = pulse.fwhm
-
-        # determine maximum and minimum times for the field
-        if self.field_envelope_type == 'gauss':
-            self.tmin, self.tmax = self.field_t0 - 2.4*self.field_fwhm, self.field_t0 + 2.4*self.field_fwhm
-        elif self.field_envelope_type == 'lorentz':
-            self.tmin, self.tmax = self.field_t0 - 8*self.field_fwhm, self.field_t0 + 8*self.field_fwhm
-        elif self.field_envelope_type == 'sech':
-            self.tmin, self.tmax = self.field_t0 - 4.4*self.field_fwhm, self.field_t0 + 4.4*self.field_fwhm
-        elif self.field_envelope_type == 'sin':
-            self.tmin, self.tmax = self.field_t0 - self.field_fwhm, self.field_t0 + self.field_fwhm
-        elif self.field_envelope_type == 'sin2':
-            T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4)))*self.field_fwhm
-            self.tmin, self.tmax = self.field_t0 - T, self.field_t0 + T
+        self.tmin = self.pulse.tmin
+        self.tmax = self.pulse.tmax
 
         # calculating the field
         self.field_t = np.arange(self.tmin, self.tmax, 2*np.pi/self.field_omega/50)  # time array for the field in a.u.
-        self.field_envelope = self.calc_field_envelope(self.field_t)
+        self.field_envelope = self.pulse.calc_field_envelope(self.field_t)
         self.field = self.field_envelope*self.pulse.field_cos(self.field_t)
 
         # calculating the FT of the field (pulse spectrum)
         dt = 2*np.pi/self.field_omega/50
         t_ft = np.arange(self.tmin - 20*self.field_fwhm, self.tmax + 20*self.field_fwhm, dt)  # setting up new time array with denser points for FT
-        field = self.calc_field_envelope(t_ft)*self.pulse.field_cos(t_ft)
+        field = self.pulse.calc_field_envelope(t_ft) * self.pulse.field_cos(t_ft)
         self.field_ft = np.abs(np.fft.rfft(field))  # FT
         self.field_ft /= np.max(self.field_ft)  # normalizing to have maximum at 0
         self.field_ft_omega = 2*np.pi*np.fft.rfftfreq(len(t_ft), dt)
@@ -383,7 +396,7 @@ class InitialConditions:
         # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
         s = np.arange(0, factor*self.field_fwhm, step=ds)
         cos = np.cos((de/self.hbar - loc_omega)*s)
-        integral = np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
+        integral = np.trapz(x=s, y=cos*self.pulse.calc_field_envelope(tprime + s/2)*self.pulse.calc_field_envelope(tprime - s/2))
         # the factor 2 was omitted as the Wigner transform is always normalized
 
         return integral
