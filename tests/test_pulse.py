@@ -4,9 +4,10 @@ from inline_snapshot import snapshot
 
 from promdens.promdens import ENVELOPE_TYPES, InitialConditions, LaserPulse
 
+
 def test_invalid_envelope_type(make_pulse):
     with pytest.raises(ValueError):
-        make_pulse(envelope_type='invalid')
+        make_pulse(envelope_type="invalid")
 
 
 @pytest.mark.parametrize("envelope", ENVELOPE_TYPES)
@@ -20,7 +21,7 @@ def test_envelope_types(make_pulse, envelope):
 
 def test_field_cos(make_pulse):
     pulse = make_pulse(omega=0.1, lchirp=0.0)
-    t = np.array([-10., -1.0, 0.0, 1.0, 10.0])
+    t = np.array([-10.0, -1.0, 0.0, 1.0, 10.0])
     cos = pulse.field_cos(t)
 
     s = snapshot(
