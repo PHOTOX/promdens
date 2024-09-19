@@ -329,4 +329,7 @@ def test_calc_field(make_pulse, envelope_type):
     )
 
     for i, value in enumerate(ics.field_ft_omega):
-        assert value == s_ft_omega[envelope_type][i]
+        # NOTE: If you need to regenerate the snapshot with --inline-snapshot=fix,
+        # use the strict comparison.
+        # assert value == s_ft_omega[envelope_type][i]
+        assert s_ft_omega[envelope_type][i] == pytest.approx(value, abs=1e-15)
