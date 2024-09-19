@@ -270,3 +270,36 @@ def test_field_envelope_shifted(make_pulse, envelope_type):
     assert envelope[0] == pytest.approx(envelope[-1], abs=1e-15)
     assert envelope[1] == pytest.approx(envelope[-2], abs=1e-15)
     assert envelope[2] == pytest.approx(envelope[-3], abs=1e-15)
+
+
+@pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
+def test_pulse_wigner(make_pulse, envelope_type):
+    pulse = make_pulse(envelope_type=envelope_type)
+    tprime = 1.0
+    de = 0.2
+
+    integral = pulse.pulse_wigner(tprime, de)
+
+    s = snapshot(
+        {
+            "gauss": 0.06628966759244047,
+            "lorentz": 0.44606065146635454,
+            "sech": 0.2328991679544244,
+            "sin": 1.4997597826618577e-35,
+            "sin2": 0.011513144721736958,
+        }
+    )
+
+    assert integral == s[envelope_type]
+
+
+@pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
+def test_pulse_wigner_compare_oldnew(make_pulse, envelope_type):
+    pulse = make_pulse(envelope_type=envelope_type)
+    ics = InitialConditions()
+    ics.calc_field(pulse)
+
+    tprime = 1.0
+    de = 0.2
+
+    assert pulse.pulse_wigner(tprime, de) == ics.pulse_wigner(tprime, de)
