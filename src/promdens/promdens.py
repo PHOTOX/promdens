@@ -513,7 +513,7 @@ class InitialConditions:
         print("* Generating weights and convolution for windowing.")
 
         # determine and print convolution function
-        conv = {
+        conv_eq = {
             'gauss': "I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)",
             'lorentz': "I(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-2",
             'sech': "I(t) = sech(2*ln(1+sqrt(2))*t/fwhm)^2",
@@ -521,8 +521,11 @@ class InitialConditions:
             'sin2': "I(t) = sin(pi/2*(t-t0+T)/T)^4 in range [t0-T,t0+T] where T=1.373412575*fwhm",
         }
 
-        print(f"  - Convolution: {conv}\n  - Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
-              f"t0 = {self.pulse.t0/self.fstoau:.3f} fs)")
+        print(
+            f"  - Convolution: {conv_eq[self.pulse.envelope_type]}\n"
+            f"  - Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
+            f"t0 = {self.pulse.t0/self.fstoau:.3f} fs"
+        )
 
         print("  - Calculating normalized weights:")
         # creating a field for weights
@@ -533,7 +536,8 @@ class InitialConditions:
             self.weights[state] = self.tdm[state]**2*np.interp(self.de[state], self.field_ft_omega, self.field_ft)**2
 
             # analysis
-            sorted = np.sort(self.weights[state, :]/np.sum(self.weights[state, :]))[::-1]  # sorting from the largest weight to smallest
+            # sort from the largest weight to smallest
+            sorted = np.sort(self.weights[state, :]/np.sum(self.weights[state, :]))[::-1]
             print(f"    > State {state + 1} -  analysis of normalized weights (weights/sum of weights on state {state + 1}):\n"
                   f"      - Largest weight: {np.max(self.weights[state, :]):.3e}\n"
                   f"      - Number of ICs making up 90% of S{state + 1} weights: {np.sum(np.cumsum(sorted) < 0.9) + 1:d}\n"
@@ -547,10 +551,13 @@ class InitialConditions:
         arr_print[0, :] = self.traj_index
         arr_print[1:, :] = self.weights
 
+        spacer = ' ' * 8
+        weights_str = spacer.join([f'weight S{s + 1}' for s in range(self.nstates)])
         header = (
-            f"Convolution: '{conv}'\nParameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
+            f"Convolution: '{conv_eq[self.pulse.envelope_type]}'\n"
+            f"Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
             f"t0 = {self.pulse.t0/self.fstoau:.3f} fs\n"
-            f"index        {(' '*8).join([f"weight S{s + 1:d}" for s in range(self.nstates)])}"
+            f"index        {weights_str}"
         )
         np.savetxt(output_fname, arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates, header=header)
 
