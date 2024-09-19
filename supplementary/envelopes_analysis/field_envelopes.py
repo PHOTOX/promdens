@@ -1,11 +1,18 @@
 """
 Analysis of laser pulse envelopes available in promdens.py
 """
+# /// script
+# requires-python = ">=3.7"
+# dependencies = [
+#     "numpy>=1.15",
+#     "matplotlib~=3.0",
+# ]
+# ///
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from promdens.promdens import LaserPulse, InitialConditions, ENVELOPE_TYPES
+from promdens.promdens import LaserPulse, InitialConditions
 
 # input data
 fwhm = 10  # in fs
@@ -22,25 +29,22 @@ fwhm *= fstoau
 
 # plotting different envelopes of electric field and intensity, and their spectra
 print("\nEnvelope profiles and spectra calculated")
-colors = plt.cm.viridis(np.linspace(0, 0.9, len(envelope_types)))
+colormap = plt.cm.viridis(np.linspace(0, 0.9, len(envelope_types)))
+colors = dict(zip(envelope_types, colormap))
 fig, axs = plt.subplots(2, 2, figsize=(7, 7))
 
-for i in range(len(envelope_types)):
-    envelope_type = envelope_types[i]
-
-    if not envelope_type in ENVELOPE_TYPES:
-        print(f"ERROR: envelope type '{envelope_type}' not available in promdens.py")
-        exit(1)
+for envelope_type in envelope_types:
 
     pulse = LaserPulse(omega=omega, fwhm=fwhm, t0=t0, lchirp=lchirp, envelope_type=envelope_type)
     field = InitialConditions()
     field.calc_field(pulse=pulse)
     field.field_ft_omega -= omega
 
-    axs[0, 0].plot(field.field_t/field.fstoau, field.field_envelope, color=colors[i], label=f"'{envelope_type}'")
-    axs[0, 1].plot(field.field_t/field.fstoau, field.field_envelope**2, color=colors[i], label=f"'{envelope_type}'")
-    axs[1, 0].plot(field.field_ft_omega/field.evtoau, field.field_ft, color=colors[i], label=f"'{envelope_type}'")
-    axs[1, 1].plot(field.field_ft_omega/field.evtoau, field.field_ft**2, color=colors[i], label=f"'{envelope_type}'")
+    color = colors[envelope_type]
+    axs[0, 0].plot(field.field_t/field.fstoau, field.field_envelope, color=color, label=envelope_type)
+    axs[0, 1].plot(field.field_t/field.fstoau, field.field_envelope**2, color=color, label=envelope_type)
+    axs[1, 0].plot(field.field_ft_omega/field.evtoau, field.field_ft, color=color, label=envelope_type)
+    axs[1, 1].plot(field.field_ft_omega/field.evtoau, field.field_ft**2, color=color, label=envelope_type)
 
 axs[0, 0].axhline(0.5, color='black', linestyle='--', lw=0.5)
 axs[0, 0].set_xlim(-3*fwhm/fstoau, 3*fwhm/fstoau)
@@ -79,7 +83,7 @@ plt.savefig('implemented_envelopes', dpi=300)
 plt.show(block=False)
 
 # plotting Wigner transformations of the field
-print("\nWigner transfroms of the pulses")
+print("\nWigner transforms of the pulses")
 fig, axs = plt.subplots(2, len(envelope_types), figsize=(2.5*len(envelope_types), 5), sharex=True, sharey=True)
 
 # create a 2D map
@@ -88,8 +92,7 @@ e = np.linspace(-1.5*np.pi/fwhm*fstoau, 1.5*np.pi/fwhm*fstoau, grid)
 t = np.linspace(-2.1*fwhm/fstoau, 2.1*fwhm/fstoau, grid)
 e2d, t2d = np.meshgrid(e, t)
 
-for i in range(len(envelope_types)):
-    envelope_type = envelope_types[i]
+for i, envelope_type in enumerate(envelope_types):
     pulse_wigner = np.zeros(np.shape(e2d))
     pulse = LaserPulse(omega=omega, fwhm=fwhm, t0=t0, lchirp=lchirp, envelope_type=envelope_type)
     field = InitialConditions()
@@ -97,14 +100,16 @@ for i in range(len(envelope_types)):
 
     for j in range(len(t)):
         for k in range(len(e)):
-            pulse_wigner[j, k] = field.pulse_wigner(tprime=t2d[j, k]*fstoau, de=e2d[j, k]*evtoau + omega)
+            pulse_wigner[j, k] = field.pulse.pulse_wigner(tprime=t2d[j, k]*fstoau, de=e2d[j, k]*evtoau + omega)
 
     pulse_wigner /= np.max(np.abs(pulse_wigner))
     pc = axs[0, i].pcolormesh(e2d, t2d, pulse_wigner, cmap='RdBu', vmin=-1, vmax=1)
-    if i == len(envelope_types) - 1: fig.colorbar(pc, ax=axs[0, i], shrink=0.92, fraction=0.05)
+    if i == len(envelope_types) - 1:
+        fig.colorbar(pc, ax=axs[0, i], shrink=0.92, fraction=0.05)
 
     pc = axs[1, i].pcolormesh(e2d, t2d, pulse_wigner, cmap='Blues', norm='log', vmin=1e-5, vmax=1)
-    if i == len(envelope_types) - 1: fig.colorbar(pc, ax=axs[1, i], shrink=0.92, fraction=0.05)
+    if i == len(envelope_types) - 1:
+        fig.colorbar(pc, ax=axs[1, i], shrink=0.92, fraction=0.05)
     pc = axs[1, i].pcolormesh(e2d, t2d, -pulse_wigner, cmap='Reds', norm='log', vmin=1e-5, vmax=1)
 
     axs[1, i].set_xlabel(r"$\Delta E$ (eV)")
