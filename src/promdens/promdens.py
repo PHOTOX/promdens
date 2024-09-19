@@ -496,7 +496,7 @@ class InitialConditions:
                           f"linear_chirp = {self.field_lchirp:.5e} a.u., fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
                           f"t0 = {self.field_t0/self.fstoau:.3f} fs, envelope type = '{self.field_envelope_type}'\n"
                           f"index        exc. time (a.u.)   el. state     dE (a.u.)       |tdm| (a.u.)")
-        print("  - Output saved to file 'pda.dat'.")
+        print(f"  - Output saved to file '{output_fname}'")
 
     def windowing(self, output_fname='pdaw.dat'):
         """
@@ -550,7 +550,7 @@ class InitialConditions:
                           f"t0 = {self.field_t0/self.fstoau:.3f} fs\n"
                           f"index        " + str(' '*8).join([f"weight S{s + 1:d}" for s in range(self.nstates)]))
 
-        print("  - Weights saved to file 'pdaw.dat'.")
+        print(f"  - Weights saved to file '{output_fname}'")
 
 
 def plot_spectrum(ics: InitialConditions) -> None:
