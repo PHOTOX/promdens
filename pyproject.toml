@@ -31,3 +31,6 @@ filterwarnings = [
     # See https://github.com/PHOTOX/promdens/issues/9
     "ignore:`trapz` is deprecated.*:DeprecationWarning:",
 ]
+
+[tool.ruff]
+line-length = 130

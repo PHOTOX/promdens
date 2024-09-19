@@ -12,6 +12,16 @@ env:
   FORCE_COLOR: 1
 
 jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: chartboost/ruff-action@v1
+      with:
+          version: "0.6.5"
+          args: 'format --check'
+
   test:
     strategy:
       fail-fast: false
