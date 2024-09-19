@@ -291,3 +291,29 @@ def test_pulse_wigner(make_pulse, envelope_type):
     )
 
     assert integral == s[envelope_type]
+
+
+@pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
+def test_pulse_wigner_de_equals_omega(make_pulse, envelope_type):
+    chirp = 0.01
+    omega = 0.3
+    pulse = make_pulse(omega=omega, lchirp=chirp, envelope_type=envelope_type)
+    tprime = 1.0
+    de = 0.2
+
+    effective_omega = omega + 2 * chirp * tprime
+    de = effective_omega
+
+    integral = pulse.pulse_wigner(tprime, de)
+
+    s = snapshot(
+        {
+            "gauss": 0.06652918871445165,
+            "lorentz": 0.4592987723664198,
+            "sech": 0.23570226039551478,
+            "sin": 1.4997597826618577e-35,
+            "sin2": 0.0115176236766308,
+        }
+    )
+
+    assert integral == s[envelope_type]

@@ -174,10 +174,12 @@ class LaserPulse:
         """
         # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
         loc_omega = self.omega + 2*self.lchirp*tprime
-        if de != loc_omega:
-            T = 2*np.pi/(np.min([np.abs(de - loc_omega), loc_omega]))
-        else:  # in case they are equal, there are no phase oscillations and we integrate only the envelope intensity
+        # If de == loc_omega, we're in resonance and there are no oscillations,
+        # integrate only the envelope intensity so we can set a larger integration step
+        if de == loc_omega:
             T = 2*np.pi/loc_omega
+        else:
+            T = 2*np.pi/(np.min([np.abs(de - loc_omega), loc_omega]))
         ds = np.min([T/50, self.fwhm/500])  # time step for integration
 
         # integration ranges for different pulse envelopes
