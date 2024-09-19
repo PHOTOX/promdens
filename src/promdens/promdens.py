@@ -163,6 +163,46 @@ class LaserPulse:
             return field
 
 
+    def pulse_wigner(self, tprime, de):
+        """
+        Wigner transform of the pulse. The current implementation uses the pulse envelope formulation to simplify calculations.
+        The integral is calculated numerically. Analytic formulas could be implemented here.
+
+        :param tprime: the excitation time t' (a.u.)
+        :param de: excitation energy (a.u.)
+        :return: Wigner pulse transform
+        """
+        # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
+        loc_omega = self.omega + 2*self.lchirp*tprime
+        if de != loc_omega:
+            T = 2*np.pi/(np.min([np.abs(de - loc_omega), loc_omega]))
+        else:  # in case they are equal, there are no phase oscillations and we integrate only the envelope intensity
+            T = 2*np.pi/loc_omega
+        ds = np.min([T/50, self.fwhm/500])  # time step for integration
+
+        # integration ranges for different pulse envelopes
+        # ideally, we would integrate from -infinity to infinity, yet this is not very computationally efficient
+        # empirically, it was found out that efficient integration varies for different pulses
+        # analytic formulas should be implemented in the future to avoid that
+        factor = {
+            'gauss': 7.5,
+            'lorentz': 50,
+            'sech': 20,
+            'sin': 3,
+            'sin2': 4,
+        }
+
+        # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
+        # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
+        s = np.arange(0, factor[self.envelope_type]*self.fwhm, step=ds)
+        # Note: We assume here that de is in atomic units, otherwise it needs to be divided by hbar
+        cos = np.cos((de - loc_omega)*s)
+        integral = np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
+        # the factor 2 was omitted as the Wigner transform is always normalized
+
+        return integral
+
+
 class InitialConditions:
     """The main class around which the code is build containing all the data and functions.
     The class:
@@ -174,9 +214,7 @@ class InitialConditions:
        - calculates weights and convolution function for windowing based on PDAW
     More details are provided in the functions below."""
 
-    # constants in atomic units
     hbar = 1.0
-
     # conversion factor between units
     evtoau = 0.036749405469679
     nmtoau = 45.56335
