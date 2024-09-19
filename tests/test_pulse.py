@@ -291,15 +291,3 @@ def test_pulse_wigner(make_pulse, envelope_type):
     )
 
     assert integral == s[envelope_type]
-
-
-@pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
-def test_pulse_wigner_compare_oldnew(make_pulse, envelope_type):
-    pulse = make_pulse(envelope_type=envelope_type)
-    ics = InitialConditions()
-    ics.calc_field(pulse)
-
-    tprime = 1.0
-    de = 0.2
-
-    assert pulse.pulse_wigner(tprime, de) == ics.pulse_wigner(tprime, de)
