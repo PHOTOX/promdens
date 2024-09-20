@@ -207,7 +207,7 @@ class LaserPulse:
             # ideally, we would integrate from -infinity to infinity, yet this is not very computationally efficient
             # empirically, it was found out that efficient integration varies for different pulses
             # analytic formulas should be implemented in the future to avoid that
-            factor = {'lorentz': 50, 'sech': 20, 'sin': 3, 'sin2': 4, }
+            factor = {'lorentz': 50, 'sech': 20, 'sin2': 4, }
 
             # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
             # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
