@@ -282,7 +282,7 @@ def test_pulse_wigner(make_pulse, envelope_type):
 
     s = snapshot(
         {
-            "gauss": 0.1325793351848809,
+            "gauss": 0.13257933518488094,
             "lorentz": 0.8921213029327091,
             "sech": 0.4657983359088488,
             "sin": 2.9995195653237154e-35,
@@ -308,7 +308,7 @@ def test_pulse_wigner_de_equals_omega(make_pulse, envelope_type):
 
     s = snapshot(
         {
-            "gauss": 0.13305837742890328,
+            "gauss": 0.1330583774289033,
             "lorentz": 0.9185975447328396,
             "sech": 0.47140452079102957,
             "sin": 2.9995195653237154e-35,
