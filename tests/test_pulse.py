@@ -278,7 +278,7 @@ def test_pulse_wigner(make_pulse, envelope_type):
     tprime = 1.0
     de = 0.2
 
-    integral = pulse.pulse_wigner(tprime, de)
+    integral = pulse.wigner_transform(tprime, de)
 
     s = snapshot(
         {
@@ -304,7 +304,7 @@ def test_pulse_wigner_de_equals_omega(make_pulse, envelope_type):
     effective_omega = omega + 2 * chirp * tprime
     de = effective_omega
 
-    integral = pulse.pulse_wigner(tprime, de)
+    integral = pulse.wigner_transform(tprime, de)
 
     s = snapshot(
         {

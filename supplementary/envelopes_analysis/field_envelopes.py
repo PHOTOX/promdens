@@ -27,6 +27,7 @@ fig, axs = plt.subplots(2, 2, figsize=(7, 7))
 
 for i in range(len(envelope_types)):
     envelope_type = envelope_types[i]
+    print(f"* {envelope_type}")
 
     if not envelope_type in ENVELOPE_TYPES:
         print(f"ERROR: envelope type '{envelope_type}' not available in promdens.py")
@@ -90,14 +91,13 @@ e2d, t2d = np.meshgrid(e, t)
 
 for i in range(len(envelope_types)):
     envelope_type = envelope_types[i]
+    print(f"* {envelope_type}")
     pulse_wigner = np.zeros(np.shape(e2d))
     pulse = LaserPulse(omega=omega, fwhm=fwhm, t0=t0, lchirp=lchirp, envelope_type=envelope_type)
-    field = InitialConditions()
-    field.calc_field(pulse=pulse)
 
     for j in range(len(t)):
         for k in range(len(e)):
-            pulse_wigner[j, k] = field.pulse_wigner(tprime=t2d[j, k]*fstoau, de=e2d[j, k]*evtoau + omega)
+            pulse_wigner[j, k] = pulse.wigner_transform(tprime=t2d[j, k]*fstoau, de=e2d[j, k]*evtoau + omega)
 
     pulse_wigner /= np.max(np.abs(pulse_wigner))
     pc = axs[0, i].pcolormesh(e2d, t2d, pulse_wigner, cmap='RdBu', vmin=-1, vmax=1)

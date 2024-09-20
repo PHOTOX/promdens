@@ -163,7 +163,7 @@ class LaserPulse:
             return field
 
 
-    def pulse_wigner(self, tprime, de):
+    def wigner_transform(self, tprime, de):
         """
         Wigner transform of the pulse. The current implementation uses the pulse envelope formulation to simplify calculations.
         The integral is calculated numerically. Analytic formulas could be implemented here.
@@ -406,7 +406,7 @@ class InitialConditions:
         samples = np.zeros((5, nsamples_ic))  # index, excitation time, initial excited state, de, tdm
 
         # setting maximum random number generated during sampling
-        rnd_max = (np.max(self.tdm**2)*self.pulse.pulse_wigner(self.field_t0, de=self.field_omega + self.field_lchirp*self.field_t0)*1.01)
+        rnd_max = (np.max(self.tdm**2)*self.pulse.wigner_transform(self.field_t0, de=self.field_omega + self.field_lchirp*self.field_t0)*1.01)
 
         # preselection of initial conditions based on pulse spectrum in order to avoid long calculation of the Wigner
         # distribution for samples far from resonance (the more out of resonance with the field, the more the integrand
@@ -438,7 +438,7 @@ class InitialConditions:
             rnd = rng.uniform(low=0, high=rnd_max)  # random number to be compared with Wig. dist.
 
             # excitation probability
-            prob = self.tdm[rnd_state, rnd_index]**2*self.pulse.pulse_wigner(rnd_time, self.de[rnd_state, rnd_index])
+            prob = self.tdm[rnd_state, rnd_index]**2*self.pulse.wigner_transform(rnd_time, self.de[rnd_state, rnd_index])
 
             # check and handle negative probabilities
             if prob < -1e-12*rnd_max:  # check negative value bigger than integration precision
