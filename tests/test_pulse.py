@@ -285,7 +285,7 @@ def test_pulse_wigner(make_pulse, envelope_type):
             "gauss": 0.1325793351848809,
             "lorentz": 0.8921213029327091,
             "sech": 0.4657983359088488,
-            "sin": 2.9995195653237154e-35,
+            "sin": 0,
             "sin2": 0.023026289443473916,
         }
     )
@@ -311,7 +311,7 @@ def test_pulse_wigner_de_equals_omega(make_pulse, envelope_type):
             "gauss": 0.13305837742890328,
             "lorentz": 0.9185975447328396,
             "sech": 0.47140452079102957,
-            "sin": 2.9995195653237154e-35,
+            "sin": 0,
             "sin2": 0.0230352473532616,
         }
     )

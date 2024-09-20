@@ -17,7 +17,6 @@ import dataclasses
 from pathlib import Path
 from timeit import default_timer as timer
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 ENERGY_UNITS = ['a.u.', 'eV', 'nm', 'cm-1']
@@ -176,13 +175,28 @@ class LaserPulse:
         loc_omega = self.omega + 2*self.lchirp*tprime
         # analytic integrals if available
         if self.envelope_type == 'gauss':
-            integral = 16**(-tprime**2/self.fwhm**2)*np.exp(-self.fwhm**2*(de - loc_omega)**2/np.log(16))*self.fwhm*np.sqrt(np.pi/np.log(2))
+            integral = 16**(-(tprime - self.t0)**2/self.fwhm**2)*np.exp(-self.fwhm**2*(de - loc_omega)**2/np.log(16))*self.fwhm*np.sqrt(
+                np.pi/np.log(2))
+        elif self.envelope_type == 'sin':
+            if de == loc_omega:
+                loc_omega += 1e-10  # because we can divide by 0 but the integral is constant for small omega
+            w = de - loc_omega
+            if tprime < self.t0 and tprime > self.t0 - self.fwhm:
+                integral = (np.pi*(-2*self.fwhm*w*np.cos(2*(tprime - self.t0 + self.fwhm)*w)*np.sin(np.pi*(tprime - self.t0)/self.fwhm) +
+                            np.pi*np.cos(np.pi*(tprime - self.t0)/self.fwhm)*np.sin(2*(tprime - self.t0 + self.fwhm)*w))/
+                            (w*(np.pi**2 - 4*self.fwhm**2*w**2)))
+            elif tprime >= self.t0 and tprime < self.t0 + self.fwhm:
+                integral = (np.pi*(2*self.fwhm*w*np.cos(2*(-tprime + self.t0 + self.fwhm)*w)*np.sin(np.pi*(tprime - self.t0)/self.fwhm) +
+                            np.pi*np.cos(np.pi*(tprime - self.t0)/self.fwhm)*np.sin(2*(-tprime + self.t0 + self.fwhm)*w))/
+                            (w*(np.pi**2 - 4*self.fwhm**2*w**2)))
+            else:
+                integral = 0
         else:  # numerical integrals for the remaining envelopes
             # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
             # If de == loc_omega, there are no oscillations and we integrate only the envelope intensity
             if de == loc_omega:
                 dt = self.fwhm/500
-            else: # out of resonance, we set the integration time step based on the frequency of oscillations
+            else:  # out of resonance, we set the integration time step based on the frequency of oscillations
                 # dt = 2*np.pi/np.abs(de - loc_omega)/50 # this would be the best formula but we use the one below
                 # because if we are too far from resonance, the numeric integral is extremely expensive just to give us zero
                 dt = 2*np.pi/np.min([np.abs(de - loc_omega), loc_omega])/50
@@ -193,12 +207,7 @@ class LaserPulse:
             # ideally, we would integrate from -infinity to infinity, yet this is not very computationally efficient
             # empirically, it was found out that efficient integration varies for different pulses
             # analytic formulas should be implemented in the future to avoid that
-            factor = {
-                'lorentz': 50,
-                'sech': 20,
-                'sin': 3,
-                'sin2': 4,
-            }
+            factor = {'lorentz': 50, 'sech': 20, 'sin': 3, 'sin2': 4, }
 
             # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
             # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
