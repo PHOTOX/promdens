@@ -200,7 +200,6 @@ class LaserPulse:
         # Note: We assume here that de is in atomic units, otherwise it needs to be divided by hbar
         cos = np.cos((de - loc_omega)*s)
         integral = 2*np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
-        # the factor 2 was omitted as the Wigner transform is always normalized
 
         return integral
 
