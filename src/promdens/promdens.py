@@ -179,19 +179,26 @@ class LaserPulse:
             integral = 16**(-tprime**2/self.fwhm**2)*np.exp(-self.fwhm**2*(de - loc_omega)**2/np.log(16))*self.fwhm*np.sqrt(np.pi/np.log(2))
         else:  # numerical integrals for the remaining envelopes
             # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
-            # If de == loc_omega, we're in resonance and there are no oscillations,
-            # integrate only the envelope intensity so we can set a larger integration step
+            # If de == loc_omega, there are no oscillations and we integrate only the envelope intensity
             if de == loc_omega:
                 dt = self.fwhm/500
-            else:
-                dt = 2*np.pi/np.abs(de - loc_omega)/50
+            else: # out of resonance, we set the integration time step based on the frequency of oscillations
+                # dt = 2*np.pi/np.abs(de - loc_omega)/50 # this would be the best formula but we use the one below
+                # because if we are too far from resonance, the numeric integral is extremely expensive just to give us zero
+                dt = 2*np.pi/np.min([np.abs(de - loc_omega), loc_omega])/50
+
             ds = np.min([dt, self.fwhm/500])  # time step for integration
 
             # integration ranges for different pulse envelopes
             # ideally, we would integrate from -infinity to infinity, yet this is not very computationally efficient
             # empirically, it was found out that efficient integration varies for different pulses
             # analytic formulas should be implemented in the future to avoid that
-            factor = {'lorentz': 50, 'sech': 20, 'sin': 3, 'sin2': 4, }
+            factor = {
+                'lorentz': 50,
+                'sech': 20,
+                'sin': 3,
+                'sin2': 4,
+            }
 
             # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
             # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
