@@ -17,6 +17,7 @@ import dataclasses
 from pathlib import Path
 from timeit import default_timer as timer
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 ENERGY_UNITS = ['a.u.', 'eV', 'nm', 'cm-1']
@@ -152,16 +153,15 @@ class LaserPulse:
             return 1/np.cosh(2*np.log(1 + np.sqrt(2))*(t - self.t0)/self.fwhm)
         elif self.envelope_type == 'sin':
             field = np.zeros(shape=np.shape(t))
-            trange = np.logical_and(t >= self.tmin,t <= self.tmax)
+            trange = np.logical_and(t >= self.tmin, t <= self.tmax)
             field[trange] = np.sin(np.pi/2*(t[trange] - self.t0 + self.fwhm)/self.fwhm)
             return field
         elif self.envelope_type == 'sin2':
             T = 1/(2 - 4/np.pi*np.arcsin(2**(-1/4)))*self.fwhm
             field = np.zeros(shape=np.shape(t))
-            trange = np.logical_and(t >= self.tmin,t <= self.tmax)
+            trange = np.logical_and(t >= self.tmin, t <= self.tmax)
             field[trange] = np.sin(np.pi/2*(t[trange] - self.t0 + T)/T)**2
             return field
-
 
     def wigner_transform(self, tprime, de):
         """
@@ -172,35 +172,33 @@ class LaserPulse:
         :param de: excitation energy (a.u.)
         :return: Wigner pulse transform
         """
-        # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
+
         loc_omega = self.omega + 2*self.lchirp*tprime
-        # If de == loc_omega, we're in resonance and there are no oscillations,
-        # integrate only the envelope intensity so we can set a larger integration step
-        if de == loc_omega:
-            T = 2*np.pi/loc_omega
-        else:
-            T = 2*np.pi/(np.min([np.abs(de - loc_omega), loc_omega]))
-        ds = np.min([T/50, self.fwhm/500])  # time step for integration
+        # analytic integrals if available
+        if self.envelope_type == 'gauss':
+            integral = 16**(-tprime**2/self.fwhm**2)*np.exp(-self.fwhm**2*(de - loc_omega)**2/np.log(16))*self.fwhm*np.sqrt(np.pi/np.log(2))
+        else:  # numerical integrals for the remaining envelopes
+            # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
+            # If de == loc_omega, we're in resonance and there are no oscillations,
+            # integrate only the envelope intensity so we can set a larger integration step
+            if de == loc_omega:
+                dt = self.fwhm/500
+            else:
+                dt = 2*np.pi/np.abs(de - loc_omega)/50
+            ds = np.min([dt, self.fwhm/500])  # time step for integration
 
-        # integration ranges for different pulse envelopes
-        # ideally, we would integrate from -infinity to infinity, yet this is not very computationally efficient
-        # empirically, it was found out that efficient integration varies for different pulses
-        # analytic formulas should be implemented in the future to avoid that
-        factor = {
-            'gauss': 7.5,
-            'lorentz': 50,
-            'sech': 20,
-            'sin': 3,
-            'sin2': 4,
-        }
+            # integration ranges for different pulse envelopes
+            # ideally, we would integrate from -infinity to infinity, yet this is not very computationally efficient
+            # empirically, it was found out that efficient integration varies for different pulses
+            # analytic formulas should be implemented in the future to avoid that
+            factor = {'lorentz': 50, 'sech': 20, 'sin': 3, 'sin2': 4, }
 
-        # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
-        # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
-        s = np.arange(0, factor[self.envelope_type]*self.fwhm, step=ds)
-        # Note: We assume here that de is in atomic units, otherwise it needs to be divided by hbar
-        cos = np.cos((de - loc_omega)*s)
-        integral = np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
-        # the factor 2 was omitted as the Wigner transform is always normalized
+            # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
+            # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
+            s = np.arange(0, factor[self.envelope_type]*self.fwhm, step=ds)
+            # Note: We assume here that de is in atomic units, otherwise it needs to be divided by hbar
+            cos = np.cos((de - loc_omega)*s)
+            integral = 2*np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
 
         return integral
 
@@ -385,7 +383,6 @@ class InitialConditions:
         else:
             print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
             self.maxwell_fulfilled = True
-
 
     def sample_initial_conditions(self, nsamples_ic: int, neg_handling: str, preselect: bool, seed=None, output_fname='pda.dat'):
         """
