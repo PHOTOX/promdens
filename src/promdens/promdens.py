@@ -174,6 +174,7 @@ class LaserPulse:
         """
         # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
         loc_omega = self.omega + 2*self.lchirp*tprime
+        # NOTE: Assuming de is in atomic units where hbar=1
         # If de == loc_omega, we're in resonance and there are no oscillations,
         # integrate only the envelope intensity so we can set a larger integration step
         if de == loc_omega:
@@ -197,7 +198,6 @@ class LaserPulse:
         # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
         # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
         s = np.arange(0, factor[self.envelope_type]*self.fwhm, step=ds)
-        # Note: We assume here that de is in atomic units, otherwise it needs to be divided by hbar
         cos = np.cos((de - loc_omega)*s)
         integral = 2*np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
 
