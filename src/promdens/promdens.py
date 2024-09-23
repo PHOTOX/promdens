@@ -179,7 +179,7 @@ class LaserPulse:
                 np.pi/np.log(2))
         elif self.envelope_type == 'sin':
             if de == loc_omega:
-                loc_omega += 1e-10  # because we can divide by 0 but the integral is constant for small omega
+                loc_omega += 1e-10  # because we can divide by 0 but the integral is constant for small loc_omega
             w = de - loc_omega
             if tprime < self.t0 and tprime > self.t0 - self.fwhm:
                 integral = (np.pi*(-2*self.fwhm*w*np.cos(2*(tprime - self.t0 + self.fwhm)*w)*np.sin(np.pi*(tprime - self.t0)/self.fwhm) +
