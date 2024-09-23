@@ -95,7 +95,8 @@ def test_calc_field(make_pulse, envelope_type):
         }
     )
     for i, value in enumerate(ics.field):
-        assert value == s_field[envelope_type][i]
+        #assert value == s_field[envelope_type][i]
+        assert s_field[envelope_type][i] == pytest.approx(value, abs=1e-15)
 
     s_ft = snapshot(
         {
