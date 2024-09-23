@@ -85,7 +85,7 @@ The work on a more detailed manual is currently in progress. If you have any que
 While `lorentz`, `sin2` and `sech` pulse envelope Wigner transforms are still calculated numerically by employing trapezoid rule for the integral, the `gauss` and `sin` envelope Wigner transforms are calculated analytically according following analytic formulas. We apply the following substitution in the formulas
 $$\Omega = \Delta E/\hbar - \omega$$.
 
-#### `gauss`
+#### Gaussian envelope
 $$\tau\sqrt{\frac{\pi}{\ln2}}16^{-\frac{(t^\prime - t_0)^2}{\tau^2}}\exp\left(-\frac{\tau^2\omega^2}{\ln16}\right)$$
 
 #### `sin`
