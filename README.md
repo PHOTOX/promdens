@@ -79,3 +79,16 @@ The code provides the pulse intensity and weights necessary for the convolution 
 If the user selects option `--plot`, the code will produce a series of plots analyzing the provided data and calculated results, e.g. the absorption spectrum calculated with the nuclear ensemble method, the pulse spectrum or the Wigner pulse transform.
 
 The work on a more detailed manual is currently in progress. If you have any questions, do not hesitate to contact the developers.
+
+### Analytic formulas for pulse envelope Wigner transform
+
+While `lorentz`, `sin2` and `sech` pulse envelope Wigner transforms are still calculated numerically by employing trapezoid rule for the integral, the `gauss` and `sin` envelope Wigner transforms are calculated analytically according following analytic formulas. We apply the following substitution in the formulas
+$$\Omega = \Delta E/\hbar - \omega$$.
+
+#### Gaussian envelope
+$$\tau\sqrt{\frac{\pi}{\ln2}}16^{-\frac{(t^\prime - t_0)^2}{\tau^2}}\exp\left(-\frac{\tau^2\omega^2}{\ln16}\right)$$
+
+#### Sinusoidal envelope
+* $\pi\frac{-2\tau\Omega\cos(2(t^\prime - t_0 + \tau)\Omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(t^\prime - t_0 + \tau)\Omega))}{\Omega(\pi^2 - 4\tau^2\Omega^2)}$            if $t^\prime < t_0$ and $t^\prime > t_0 - \tau $
+* $\pi\frac{2\tau\Omega\cos(2(-t^\prime + t_0 + \tau)\Omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(-t^\prime + t_0 + \tau)\Omega))}{\Omega(\pi^2 - 4\tau^2\Omega^2)}$            if $t^\prime \ge t_0$ and $t^\prime < t_0 - \tau $
+* $0$            elsewhere
