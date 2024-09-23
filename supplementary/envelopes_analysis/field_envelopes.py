@@ -3,6 +3,8 @@ Analysis of laser pulse envelopes available in promdens.py
 """
 
 import matplotlib.pyplot as plt
+import matplotlib.colors
+
 import numpy as np
 
 from promdens.promdens import LaserPulse, InitialConditions, ENVELOPE_TYPES
@@ -103,9 +105,13 @@ for i in range(len(envelope_types)):
     pc = axs[0, i].pcolormesh(e2d, t2d, pulse_wigner, cmap='RdBu', vmin=-1, vmax=1)
     if i == len(envelope_types) - 1: fig.colorbar(pc, ax=axs[0, i], shrink=0.92, fraction=0.05)
 
-    pc = axs[1, i].pcolormesh(e2d, t2d, pulse_wigner, cmap='Blues', norm='log', vmin=1e-5, vmax=1)
+    # Use log scale for the colormap
+    # https://matplotlib.org/stable/users/explain/colors/colormapnorms.html#logarithmic
+    lognorm = matplotlib.colors.LogNorm(vmin=1e-5, vmax=1)
+    # Plot negative and positive parts separately in blue and red, respectively
+    pc = axs[1, i].pcolormesh(e2d, t2d, pulse_wigner, cmap='Blues', norm=lognorm)
     if i == len(envelope_types) - 1: fig.colorbar(pc, ax=axs[1, i], shrink=0.92, fraction=0.05)
-    pc = axs[1, i].pcolormesh(e2d, t2d, -pulse_wigner, cmap='Reds', norm='log', vmin=1e-5, vmax=1)
+    pc = axs[1, i].pcolormesh(e2d, t2d, -pulse_wigner, cmap='Reds', norm=lognorm)
 
     axs[1, i].set_xlabel(r"$\Delta E$ (eV)")
     axs[0, i].set_title(f"'{envelope_type}'")
