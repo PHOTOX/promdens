@@ -314,7 +314,7 @@ def test_pulse_wigner(make_pulse, envelope_type):
     )
 
     for i, tprime in enumerate(tprimes):
-        assert pulse.wigner_transform(tprime, de) == pytest.approx(s[envelope_type][i], abs=1e-15, rel=1e-15)
+        assert s[envelope_type][i] == pytest.approx(pulse.wigner_transform(tprime, de), abs=1e-15, rel=1e-15)
 
 
 @pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
@@ -363,4 +363,4 @@ def test_pulse_wigner_de_equals_omega(make_pulse, envelope_type):
     for i, tprime in enumerate(tprimes):
         effective_omega = omega + 2 * chirp * tprime
         de = effective_omega
-        assert pulse.wigner_transform(tprime, de) == pytest.approx(s[envelope_type][i], abs=1e-15, rel=1e-15)
+        assert s[envelope_type][i] == pytest.approx(pulse.wigner_transform(tprime, de), abs=1e-15, rel=1e-15)
