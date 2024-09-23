@@ -163,6 +163,47 @@ class LaserPulse:
             return field
 
 
+    def wigner_transform(self, tprime, de):
+        """
+        Wigner transform of the pulse. The current implementation uses the pulse envelope formulation to simplify calculations.
+        The integral is calculated numerically. Analytic formulas could be implemented here.
+
+        :param tprime: the excitation time t' (a.u.)
+        :param de: excitation energy (a.u.)
+        :return: Wigner pulse transform
+        """
+        # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
+        loc_omega = self.omega + 2*self.lchirp*tprime
+        # NOTE: Assuming de is in atomic units where hbar=1
+        # If de == loc_omega, we're in resonance and there are no oscillations,
+        # integrate only the envelope intensity so we can set a larger integration step
+        if de == loc_omega:
+            T = 2*np.pi/loc_omega
+        else:
+            T = 2*np.pi/(np.min([np.abs(de - loc_omega), loc_omega]))
+        ds = np.min([T/50, self.fwhm/500])  # time step for integration
+
+        # integration ranges for different pulse envelopes
+        # ideally, we would integrate from -infinity to infinity, yet this is not very computationally efficient
+        # empirically, it was found out that efficient integration varies for different pulses
+        # analytic formulas should be implemented in the future to avoid that
+        factor = {
+            'gauss': 7.5,
+            'lorentz': 50,
+            'sech': 20,
+            'sin': 3,
+            'sin2': 4,
+        }
+
+        # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
+        # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
+        s = np.arange(0, factor[self.envelope_type]*self.fwhm, step=ds)
+        cos = np.cos((de - loc_omega)*s)
+        integral = 2*np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
+
+        return integral
+
+
 class InitialConditions:
     """The main class around which the code is build containing all the data and functions.
     The class:
@@ -173,9 +214,6 @@ class InitialConditions:
        - creates initial conditions in the excited states based on PDA using wigner pulse envelope transformation
        - calculates weights and convolution function for windowing based on PDAW
     More details are provided in the functions below."""
-
-    # constants in atomic units
-    hbar = 1.0
 
     # conversion factor between units
     evtoau = 0.036749405469679
@@ -347,46 +385,6 @@ class InitialConditions:
             print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
             self.maxwell_fulfilled = True
 
-    def pulse_wigner(self, tprime, de):
-        """
-        Wigner transform of the pulse. The current implementation uses the pulse envelope formulation to simplify calculations.
-        The integral is calculated numerically. Analytic formulas could be implemented here.
-
-        :param tprime: the excitation time t' (a.u.)
-        :param de: excitation energy (a.u.)
-        :return: Wigner pulse transform
-        """
-        # setting an adaptive integration step according to the frequency of the integrand oscillations (de - omega)
-        loc_omega = self.field_omega + 2*self.field_lchirp*tprime
-        if de != loc_omega:
-            T = 2*np.pi/(np.min([np.abs(de - loc_omega), loc_omega]))
-        else:  # in case they are equal, there are no phase oscillations and we integrate only the envelope intensity
-            T = 2*np.pi/loc_omega
-        ds = np.min([T/50, self.field_fwhm/500])  # time step for integration
-
-        # integration ranges for different pulse envelopes
-        # ideally, we would integrate from -infinity to infinity, yet this is not very computationally efficient
-        # empirically, it was found out that efficient integration varies for different pulses
-        # analytic formulas should be implemented in the future to avoid that
-        if self.field_envelope_type == 'gauss':
-            factor = 7.5
-        elif self.field_envelope_type == 'lorentz':
-            factor = 50
-        elif self.field_envelope_type == 'sech':
-            factor = 20
-        elif self.field_envelope_type == 'sin':
-            factor = 3
-        elif self.field_envelope_type == 'sin2':
-            factor = 4
-
-        # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
-        # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
-        s = np.arange(0, factor*self.field_fwhm, step=ds)
-        cos = np.cos((de/self.hbar - loc_omega)*s)
-        integral = np.trapz(x=s, y=cos*self.pulse.calc_field_envelope(tprime + s/2)*self.pulse.calc_field_envelope(tprime - s/2))
-        # the factor 2 was omitted as the Wigner transform is always normalized
-
-        return integral
 
     def sample_initial_conditions(self, nsamples_ic: int, neg_handling: str, preselect: bool, seed=None, output_fname='pda.dat'):
         """
@@ -407,7 +405,7 @@ class InitialConditions:
         samples = np.zeros((5, nsamples_ic))  # index, excitation time, initial excited state, de, tdm
 
         # setting maximum random number generated during sampling
-        rnd_max = (np.max(self.tdm**2)*self.pulse_wigner(self.field_t0, de=self.field_omega + self.field_lchirp*self.field_t0)*1.01)
+        rnd_max = (np.max(self.tdm**2)*self.pulse.wigner_transform(self.field_t0, de=self.field_omega + self.field_lchirp*self.field_t0)*1.01)
 
         # preselection of initial conditions based on pulse spectrum in order to avoid long calculation of the Wigner
         # distribution for samples far from resonance (the more out of resonance with the field, the more the integrand
@@ -439,7 +437,7 @@ class InitialConditions:
             rnd = rng.uniform(low=0, high=rnd_max)  # random number to be compared with Wig. dist.
 
             # excitation probability
-            prob = self.tdm[rnd_state, rnd_index]**2*self.pulse_wigner(rnd_time, self.de[rnd_state, rnd_index])
+            prob = self.tdm[rnd_state, rnd_index]**2*self.pulse.wigner_transform(rnd_time, self.de[rnd_state, rnd_index])
 
             # check and handle negative probabilities
             if prob < -1e-12*rnd_max:  # check negative value bigger than integration precision
@@ -499,7 +497,7 @@ class InitialConditions:
                           f"linear_chirp = {self.field_lchirp:.5e} a.u., fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
                           f"t0 = {self.field_t0/self.fstoau:.3f} fs, envelope type = '{self.field_envelope_type}'\n"
                           f"index        exc. time (a.u.)   el. state     dE (a.u.)       |tdm| (a.u.)")
-        print("  - Output saved to file 'pda.dat'.")
+        print(f"  - Output saved to file '{output_fname}'")
 
     def windowing(self, output_fname='pdaw.dat'):
         """
@@ -553,7 +551,7 @@ class InitialConditions:
                           f"t0 = {self.field_t0/self.fstoau:.3f} fs\n"
                           f"index        " + str(' '*8).join([f"weight S{s + 1:d}" for s in range(self.nstates)]))
 
-        print("  - Weights saved to file 'pdaw.dat'.")
+        print(f"  - Weights saved to file '{output_fname}'")
 
 
 def plot_spectrum(ics: InitialConditions) -> None:

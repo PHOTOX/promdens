@@ -270,3 +270,97 @@ def test_field_envelope_shifted(make_pulse, envelope_type):
     assert envelope[0] == pytest.approx(envelope[-1], abs=1e-15)
     assert envelope[1] == pytest.approx(envelope[-2], abs=1e-15)
     assert envelope[2] == pytest.approx(envelope[-3], abs=1e-15)
+
+
+@pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
+def test_pulse_wigner(make_pulse, envelope_type):
+    pulse = make_pulse(envelope_type=envelope_type)
+    tprimes = [0.0, 0.01, 1.0, 10]
+    de = 0.2
+
+    s = snapshot(
+        {
+            "gauss": {
+                0: 2.121269362958095,
+                1: 2.1206813037329235,
+                2: 0.13257933518488094,
+                3: 8.21481058420915e-121,
+            },
+            "lorentz": {
+                0: 2.4140684913342527,
+                1: 2.4136641848000515,
+                2: 0.8921213029327091,
+                3: -0.004348713041567712,
+            },
+            "sech": {
+                0: 2.257217042037135,
+                1: 2.2567480186684,
+                2: 0.4657983359088488,
+                3: 3.608906131731995e-14,
+            },
+            "sin": {
+                0: 1.9947778380166699,
+                1: 1.9938039575929751,
+                2: 2.9995195653237154e-35,
+                3: 0.0,
+            },
+            "sin2": {
+                0: 2.0539072127434963,
+                1: 2.0531922533816345,
+                2: 0.023026289443473916,
+                3: 0.0,
+            },
+        }
+    )
+
+    for i, tprime in enumerate(tprimes):
+        assert pulse.wigner_transform(tprime, de) == s[envelope_type][i]
+
+
+@pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
+def test_pulse_wigner_de_equals_omega(make_pulse, envelope_type):
+    chirp = 0.01
+    omega = 0.3
+    pulse = make_pulse(omega=omega, lchirp=chirp, envelope_type=envelope_type)
+    tprimes = [0.0, 0.01, 1.0, 10]
+    de = 0.2
+
+    s = snapshot(
+        {
+            "gauss": {
+                0: 2.128934038862453,
+                1: 2.128343854832458,
+                2: 0.1330583774289033,
+                3: 8.244492746146307e-121,
+            },
+            "lorentz": {
+                0: 2.4406313983925805,
+                1: 2.440227083180404,
+                2: 0.9185975447328396,
+                3: 0.0146041084386692,
+            },
+            "sech": {
+                0: 2.26918531421302,
+                1: 2.268715316453524,
+                2: 0.47140452079102957,
+                3: 7.663844407334862e-14,
+            },
+            "sin": {
+                0: 2.0,
+                1: 1.999019683371722,
+                2: 2.9995195653237154e-35,
+                3: 0.0
+            },
+            "sin2": {
+                0: 2.0601188623368833,
+                1: 2.059400368248726,
+                2: 0.0230352473532616,
+                3: 0.0,
+            },
+        }
+    )
+
+    for i, tprime in enumerate(tprimes):
+        effective_omega = omega + 2 * chirp * tprime
+        de = effective_omega
+        assert pulse.wigner_transform(tprime, de) == s[envelope_type][i]
