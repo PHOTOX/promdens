@@ -1,6 +1,6 @@
 import pytest
 
-from promdens.promdens import LaserPulse
+from promdens import LaserPulse
 
 @pytest.fixture
 def make_pulse():
