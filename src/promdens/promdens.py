@@ -248,7 +248,6 @@ class InitialConditions:
         self.nsamples = nsamples
         self.nstates = nstates
         self.input_type = input_type
-        self.maxwell_fulfilled = False
 
     def read_input_data(self, fname: str, energy_unit: str, tdm_unit: str) -> None:
         """
@@ -362,23 +361,17 @@ class InitialConditions:
         :param pulse: LaserPulse dataclass containing laser pulse parameters (frequency, fwhm...)
         """
         self.pulse = pulse
-        # TODO: Remove all these extra assignments
-        self.field_omega = pulse.omega
-        self.field_lchirp = pulse.lchirp
-        self.field_envelope_type = pulse.envelope_type
-        self.field_t0 = pulse.t0
-        self.field_fwhm = pulse.fwhm
-        self.tmin = self.pulse.tmin
-        self.tmax = self.pulse.tmax
 
         # calculating the field
-        self.field_t = np.arange(self.tmin, self.tmax, 2*np.pi/self.field_omega/50)  # time array for the field in a.u.
+        dt = 2*np.pi/self.pulse.omega/50
+        self.field_t = np.arange(self.pulse.tmin, self.pulse.tmax, dt)  # time array for the field in a.u.
         self.field_envelope = self.pulse.calc_field_envelope(self.field_t)
         self.field = self.field_envelope*self.pulse.field_cos(self.field_t)
 
         # calculating the FT of the field (pulse spectrum)
-        dt = 2*np.pi/self.field_omega/50
-        t_ft = np.arange(self.tmin - 20*self.field_fwhm, self.tmax + 20*self.field_fwhm, dt)  # setting up new time array with denser points for FT
+        # Set up a new time array with denser points for FT
+        extra_t = 20*self.pulse.fwhm
+        t_ft = np.arange(self.pulse.tmin - extra_t, self.pulse.tmax + extra_t, dt)
         field = self.pulse.calc_field_envelope(t_ft)*self.pulse.field_cos(t_ft)
         self.field_ft = np.abs(np.fft.rfft(field))  # FT
         self.field_ft /= np.max(self.field_ft)  # normalizing to have maximum at 0
@@ -395,10 +388,8 @@ class InitialConditions:
             print("  - WARNING: Pulse is too short and integral of E(t) is not equal to 0 - Maxwell's equations are "
                   "not fulfilled. This means that representation of pulse as envelope times cos(wt) is not physical. "
                   "See the original reference for more details.")
-            self.maxwell_fulfilled = False
         else:
             print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
-            self.maxwell_fulfilled = True
 
     def sample_initial_conditions(self, nsamples_ic: int, neg_handling: str, preselect: bool, seed=None, output_fname='pda.dat'):
         """
@@ -419,7 +410,7 @@ class InitialConditions:
         samples = np.zeros((5, nsamples_ic))  # index, excitation time, initial excited state, de, tdm
 
         # setting maximum random number generated during sampling
-        rnd_max = (np.max(self.tdm**2)*self.pulse.wigner_transform(self.field_t0, de=self.field_omega + self.field_lchirp*self.field_t0)*1.01)
+        rnd_max = (np.max(self.tdm**2)*self.pulse.wigner_transform(self.pulse.t0, de=self.pulse.omega + self.pulse.lchirp*self.pulse.t0)*1.01)
 
         # preselection of initial conditions based on pulse spectrum in order to avoid long calculation of the Wigner
         # distribution for samples far from resonance (the more out of resonance with the field, the more the integrand
@@ -447,7 +438,7 @@ class InitialConditions:
                 continue
 
             # selecting randomly excitation time and random uniform number
-            rnd_time = rng.uniform(low=self.tmin, high=self.tmax)
+            rnd_time = rng.uniform(low=self.pulse.tmin, high=self.pulse.tmax)
             rnd = rng.uniform(low=0, high=rnd_max)  # random number to be compared with Wig. dist.
 
             # excitation probability
@@ -507,9 +498,9 @@ class InitialConditions:
         # save the selected samples
         np.savetxt(output_fname, samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'],
                    header=f"Sampling: number of ICs = {nsamples_ic:d}, number of unique ICs = {np.sum(unique_states):d}\n"
-                          f"Field parameters: omega = {self.field_omega:.5e} a.u., "
-                          f"linear_chirp = {self.field_lchirp:.5e} a.u., fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
-                          f"t0 = {self.field_t0/self.fstoau:.3f} fs, envelope type = '{self.field_envelope_type}'\n"
+                          f"Field parameters: omega = {self.pulse.omega:.5e} a.u., "
+                          f"linear_chirp = {self.pulse.lchirp:.5e} a.u., fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
+                          f"t0 = {self.pulse.t0/self.fstoau:.3f} fs, envelope type = '{self.pulse.envelope_type}'\n"
                           f"index        exc. time (a.u.)   el. state     dE (a.u.)       |tdm| (a.u.)")
         print(f"  - Output saved to file '{output_fname}'")
 
@@ -524,18 +515,18 @@ class InitialConditions:
         print("* Generating weights and convolution for windowing.")
 
         # determine and print convolution function
-        if self.field_envelope_type == 'gauss':
+        if self.pulse.envelope_type == 'gauss':
             self.conv = "I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)"
-        elif self.field_envelope_type == 'lorentz':
+        elif self.pulse.envelope_type == 'lorentz':
             self.conv = "I(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-2"
-        elif self.field_envelope_type == 'sech':
+        elif self.pulse.envelope_type == 'sech':
             self.conv = "I(t) = sech(2*ln(1+sqrt(2))*t/fwhm)^2"
-        elif self.field_envelope_type == 'sin':
+        elif self.pulse.envelope_type == 'sin':
             self.conv = "I(t) = sin(pi/2*(t-t0+fwhm)/fwhm)^2 in range [t0-fwhm,t0+fwhm]"
-        elif self.field_envelope_type == 'sin2':
+        elif self.pulse.envelope_type == 'sin2':
             self.conv = "I(t) = sin(pi/2*(t-t0+T)/T)^4 in range [t0-T,t0+T] where T=1.373412575*fwhm"
-        print(f"  - Convolution: {self.conv}\n  - Parameters:  fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
-              f"t0 = {self.field_t0/self.fstoau:.3f} fs)")
+        print(f"  - Convolution: {self.conv}\n  - Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
+              f"t0 = {self.pulse.t0/self.fstoau:.3f} fs)")
 
         print("  - Calculating normalized weights:")
         # creating a field for weights
@@ -561,8 +552,8 @@ class InitialConditions:
         arr_print[1:, :] = self.weights
 
         np.savetxt(output_fname, arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates,
-                   header=f"Convolution: '{self.conv}'\nParameters:  fwhm = {self.field_fwhm/self.fstoau:.3f} fs, "
-                          f"t0 = {self.field_t0/self.fstoau:.3f} fs\n"
+                   header=f"Convolution: '{self.conv}'\nParameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
+                          f"t0 = {self.pulse.t0/self.fstoau:.3f} fs\n"
                           f"index        " + str(' '*8).join([f"weight S{s + 1:d}" for s in range(self.nstates)]))
 
         print(f"  - Weights saved to file '{output_fname}'")
@@ -664,7 +655,7 @@ def plot_field(ics: InitialConditions) -> None:
     plt.show(block=False)
 
     # In case the pulse does not fulfil Maxwell's equations, plot the whole pulse spectrum and explain.
-    if not ics.maxwell_fulfilled:
+    if not ics.is_maxwell_fulfilled():
         print("  - Plotting Maxwell eq. violation (pulse spectrum at 0 frequency)")
         fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
         fig.suptitle("Pulse spectrum nonzero at zero frequency!")
@@ -711,7 +702,7 @@ def plot_pda(ics: InitialConditions) -> None:
 
     axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100), cmap=plt.cm.viridis, density=True, )
     if ics.field_lchirp != 0:
-        axs.plot((ics.field_omega + 2*ics.field_lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color="white", linestyle="--",
+        axs.plot((ics.pulse.omega + 2*ics.field_lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color="white", linestyle="--",
                  label=r"$\omega(t)$", )
         axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
 
