@@ -377,19 +377,27 @@ class InitialConditions:
         self.field_ft /= np.max(self.field_ft)  # normalizing to have maximum at 0
         self.field_ft_omega = 2*np.pi*np.fft.rfftfreq(len(t_ft), dt)
 
-        # TODO: Move to function `is_maxwell_fulfilled()`
-        # checking the pulse fulfils Maxwell's equations (integral from -infinity to infinity of E(t) = E(w=0) 0)
-        if self.field_ft_omega[0] == 0:  # the integral is equal to spectrum at zero frequency
-            integral = self.field_ft[0]
-        else:  # in case the first element is not zero frequency (which should not be at the current version of python)
-            integral = self.field_ft[self.field_ft_omega == 0]
-
-        if integral > 0.01:  # empirical threshold which considers the spectrum has maximum equal to 1
+        if self.is_maxwell_fulfilled():
             print("  - WARNING: Pulse is too short and integral of E(t) is not equal to 0 - Maxwell's equations are "
                   "not fulfilled. This means that representation of pulse as envelope times cos(wt) is not physical. "
                   "See the original reference for more details.")
         else:
             print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
+
+    def is_maxwell_fulfilled(self):
+        """Check if the pulse fulfills Maxwell's equations
+        (integral from -infinity to infinity of E(t) = E(w=0) 0)
+        """
+        # the integral is equal to spectrum at zero frequency
+        if self.field_ft_omega[0] == 0:
+            integral = self.field_ft[0]
+        else:  # in case the first element is not zero frequency (which should not be at the current version of python)
+            integral = self.field_ft[self.field_ft_omega == 0]
+        # empirical threshold which considers the spectrum has maximum equal to 1
+        if integral > 0.01:
+            return False
+        else:
+            return True
 
     def sample_initial_conditions(self, nsamples_ic: int, neg_handling: str, preselect: bool, seed=None, output_fname='pda.dat'):
         """
@@ -701,8 +709,8 @@ def plot_pda(ics: InitialConditions) -> None:
     tmin, tmax = np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau)
 
     axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100), cmap=plt.cm.viridis, density=True, )
-    if ics.field_lchirp != 0:
-        axs.plot((ics.pulse.omega + 2*ics.field_lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color="white", linestyle="--",
+    if ics.pulse.lchirp != 0:
+        axs.plot((ics.pulse.omega + 2*ics.pulse.lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color="white", linestyle="--",
                  label=r"$\omega(t)$", )
         axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
 
