@@ -47,7 +47,7 @@ axs[0, 0].set_xlim(-3*fwhm/fstoau, 3*fwhm/fstoau)
 axs[0, 0].set_ylim(0, 1.2)
 axs[0, 0].set_xlabel(r"$t$ (fs)")
 axs[0, 0].set_ylabel(r"$\varepsilon(t)$")
-axs[0, 0].set_title(r"Pulse envelope")
+axs[0, 0].set_title("Pulse envelope")
 axs[0, 0].legend(frameon=False, labelspacing=0.1, loc='upper right')
 
 fwhm2 = fwhm/2/fstoau
@@ -57,21 +57,21 @@ axs[0, 1].set_xlim(-3*fwhm/fstoau, 3*fwhm/fstoau)
 axs[0, 1].set_ylim(0, 1.2)
 axs[0, 1].set_xlabel(r"$t$ (fs)")
 axs[0, 1].set_ylabel(r"$I(t)$")
-axs[0, 1].set_title(r"Pulse intensity")
+axs[0, 1].set_title("Pulse intensity")
 axs[0, 1].legend(frameon=False, labelspacing=0.1, loc='upper right')
 
 axs[1, 0].set_xlim(-2*np.pi/fwhm*fstoau, 2*np.pi/fwhm*fstoau)
 axs[1, 0].set_ylim(0, 1.2)
 axs[1, 0].set_xlabel(r"$E$ (eV)")
 axs[1, 0].set_ylabel(r"$|\varepsilon(\omega)|$")
-axs[1, 0].set_title(r"Envelope spectrum")
+axs[1, 0].set_title("Envelope spectrum")
 axs[1, 0].legend(frameon=False, labelspacing=0.1, loc='upper right')
 
 axs[1, 1].set_xlim(-2*np.pi/fwhm*fstoau, 2*np.pi/fwhm*fstoau)
 axs[1, 1].set_ylim(0, 1.2)
 axs[1, 1].set_xlabel(r"$E$ (eV)")
 axs[1, 1].set_ylabel(r"$S(\omega)$")
-axs[1, 1].set_title(r"Spectral intensity")
+axs[1, 1].set_title("Spectral intensity")
 axs[1, 1].legend(frameon=False, labelspacing=0.1, loc='upper right')
 
 plt.tight_layout()
@@ -112,7 +112,7 @@ for i, envelope_type in enumerate(envelope_types):
     pc = axs[1, i].pcolormesh(e2d, t2d, -pulse_wigner, cmap='Reds', norm=lognorm)
 
     axs[1, i].set_xlabel(r"$\Delta E$ (eV)")
-    axs[0, i].set_title(f"'{envelope_type}'")
+    axs[0, i].set_title(envelope_type)
     axs[0, i].tick_params('both', direction='in', which='both', top=True, right=True)
     axs[1, i].tick_params('both', direction='in', which='both', top=True, right=True)
 
