@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from promdens.promdens import InitialConditions, LaserPulse
+from promdens import InitialConditions, LaserPulse
 
 # path to the tests folder
 path = Path(__file__).parent.absolute()
