@@ -1,8 +1,10 @@
 name: Publish
 
 on:
-  pull_request:
   workflow_dispatch:
+  push:
+    tags:
+      - "v*"
 
 env:
   FORCE_COLOR: 3
@@ -23,7 +25,9 @@ jobs:
     needs: [dist]
     name: Publish to TestPyPI
     if: github.repository == 'PHOTOX/promdens'
-    environment: testpypi
+    environment:
+       name: testpypi
+       url: https://test.pypi.org/p/promdens/
     permissions:
       id-token: write
     runs-on: ubuntu-latest
@@ -36,19 +40,26 @@ jobs:
 
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          # Remember to tell (test-)pypi about this repo before publishing
           repository-url: https://test.pypi.org/legacy/
 
-  publish:
-    name: Publish to PyPI
+  pypi-publish:
+    name: Publish release to PyPI
     needs: [test-publish]
     if: >-
-        github.repository == 'PHOTOX/promdens' && github.ref_type == 'tag'
+      github.repository == 'PHOTOX/promdens' &&
+      github.event_name == 'push' &&
+      github.ref_type == 'tag'
     runs-on: ubuntu-latest
+    environment:
+       name: pypi
+       url: https://pypi.org/p/promdens/
+    permissions:
+      id-token: write
 
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: Packages
           path: dist
-    # TODO: Publish to actual PyPI
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
