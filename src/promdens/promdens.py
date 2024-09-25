@@ -175,20 +175,20 @@ class LaserPulse:
         loc_omega = self.omega + 2*self.lchirp*tprime
         # analytic integrals if available
         if self.envelope_type == 'gauss':
-            integral = 16**(-(tprime - self.t0)**2/self.fwhm**2)*np.exp(-self.fwhm**2*(de - loc_omega)**2/np.log(16))*self.fwhm*np.sqrt(
-                np.pi/np.log(2))
+            integral = 16**(-(tprime - self.t0)**2/self.fwhm**2)*np.exp(
+                -self.fwhm**2*(de - loc_omega)**2/np.log(16))*self.fwhm*np.sqrt(np.pi/np.log(2))
         elif self.envelope_type == 'sin':
             if de == loc_omega:
                 loc_omega += 1e-10  # because we can divide by 0 but the integral is constant for small loc_omega
             w = de - loc_omega
             if tprime < self.t0 and tprime > self.t0 - self.fwhm:
-                integral = (np.pi*(-2*self.fwhm*w*np.cos(2*(tprime - self.t0 + self.fwhm)*w)*np.sin(np.pi*(tprime - self.t0)/self.fwhm) +
-                            np.pi*np.cos(np.pi*(tprime - self.t0)/self.fwhm)*np.sin(2*(tprime - self.t0 + self.fwhm)*w))/
-                            (w*(np.pi**2 - 4*self.fwhm**2*w**2)))
+                integral = (np.pi*(-2*self.fwhm*w*np.cos(2*(tprime - self.t0 + self.fwhm)*w)*np.sin(
+                    np.pi*(tprime - self.t0)/self.fwhm) + np.pi*np.cos(np.pi*(tprime - self.t0)/self.fwhm)*np.sin(
+                    2*(tprime - self.t0 + self.fwhm)*w))/(w*(np.pi**2 - 4*self.fwhm**2*w**2)))
             elif tprime >= self.t0 and tprime < self.t0 + self.fwhm:
-                integral = (np.pi*(2*self.fwhm*w*np.cos(2*(-tprime + self.t0 + self.fwhm)*w)*np.sin(np.pi*(tprime - self.t0)/self.fwhm) +
-                            np.pi*np.cos(np.pi*(tprime - self.t0)/self.fwhm)*np.sin(2*(-tprime + self.t0 + self.fwhm)*w))/
-                            (w*(np.pi**2 - 4*self.fwhm**2*w**2)))
+                integral = (np.pi*(2*self.fwhm*w*np.cos(2*(-tprime + self.t0 + self.fwhm)*w)*np.sin(
+                    np.pi*(tprime - self.t0)/self.fwhm) + np.pi*np.cos(np.pi*(tprime - self.t0)/self.fwhm)*np.sin(
+                    2*(-tprime + self.t0 + self.fwhm)*w))/(w*(np.pi**2 - 4*self.fwhm**2*w**2)))
             else:
                 integral = 0
         else:  # numerical integrals for the remaining envelopes
@@ -207,14 +207,18 @@ class LaserPulse:
             # ideally, we would integrate from -infinity to infinity, yet this is not very computationally efficient
             # empirically, it was found out that efficient integration varies for different pulses
             # analytic formulas should be implemented in the future to avoid that
-            factor = {'lorentz': 50, 'sech': 20, 'sin2': 4, }
+            factor = {
+                'lorentz': 50,
+                'sech'   : 20,
+                'sin2'   : 4, }
 
             # instead of calculating the complex integral int_{-inf}^{inf}[E(t+s/2)E(t-s/2)exp(i(w-de)s)]ds we use the
             # properties of even and odd fucntions and calculate 2*int_{0}^{inf}[E(t+s/2)E(t-s/2)cos((w-de)s)]ds
             s = np.arange(0, factor[self.envelope_type]*self.fwhm, step=ds)
             # Note: We assume here that de is in atomic units, otherwise it needs to be divided by hbar
             cos = np.cos((de - loc_omega)*s)
-            integral = 2*np.trapz(x=s, y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
+            integral = 2*np.trapz(x=s,
+                y=cos*self.calc_field_envelope(tprime + s/2)*self.calc_field_envelope(tprime - s/2))
 
         return integral
 
@@ -278,7 +282,8 @@ class InitialConditions:
             self.nsamples = np.shape(input)[1]
             print(f"  - Number of samples loaded from the input file: {self.nsamples}")
         elif self.nsamples > np.shape(input)[1]:  # check if requested nsamples is not larger than provided in the input
-            print(f"  - Number of samples loaded from the input file {np.shape(input)[1]} instead of requested {self.nsamples}")
+            print(
+                f"  - Number of samples loaded from the input file {np.shape(input)[1]} instead of requested {self.nsamples}")
             self.nsamples = np.shape(input)[1]
 
         self.traj_index = np.array(input[0, :self.nsamples], dtype=int)  # saving indexes of trajectories
@@ -369,18 +374,18 @@ class InitialConditions:
         self.field = self.field_envelope*self.pulse.field_cos(self.field_t)
 
         # calculating the FT of the field (pulse spectrum)
-        # Set up a new time array with denser points for FT
         extra_t = 20*self.pulse.fwhm
-        t_ft = np.arange(self.pulse.tmin - extra_t, self.pulse.tmax + extra_t, dt)
-        field = self.pulse.calc_field_envelope(t_ft)*self.pulse.field_cos(t_ft)
+        t_ft = np.arange(self.pulse.tmin - extra_t, self.pulse.tmax + extra_t,
+            dt)  # Set up a new longer time array for FT
+        field = self.pulse.calc_field_envelope(t_ft)*self.pulse.field_cos(t_ft)  # calculate field for FT
         self.field_ft = np.abs(np.fft.rfft(field))  # FT
         self.field_ft /= np.max(self.field_ft)  # normalizing to have maximum at 0
         self.field_ft_omega = 2*np.pi*np.fft.rfftfreq(len(t_ft), dt)
 
         if self.is_maxwell_fulfilled():
             print("  - WARNING: Pulse is too short and integral of E(t) is not equal to 0 - Maxwell's equations are "
-                  "not fulfilled. This means that representation of pulse as envelope times cos(wt) is not physical. "
-                  "See the original reference for more details.")
+                  "not fulfilled. This means\n    that the representation of the pulse as envelope times cos(wt) is not physical."
+                  " See the original reference for more details.")
         else:
             print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
 
@@ -399,7 +404,8 @@ class InitialConditions:
         else:
             return True
 
-    def sample_initial_conditions(self, nsamples_ic: int, neg_handling: str, preselect: bool, seed=None, output_fname='pda.dat'):
+    def sample_initial_conditions(self, nsamples_ic: int, neg_handling: str, preselect: bool, seed=None,
+                                  output_fname='pda.dat'):
         """
         Sample time-dependent initial conditions using the Promoted Density Approach.
         :param nsamples_ic: number of initial conditions to be sampled
@@ -417,18 +423,20 @@ class InitialConditions:
         # variable storing initial conditions
         samples = np.zeros((5, nsamples_ic))  # index, excitation time, initial excited state, de, tdm
 
-        # setting maximum random number generated during sampling,
-        # taking the maximum TDM and the maximum of wigner transform (which is at tprime=t0)
-        effective_omega = self.pulse.omega + self.pulse.lchirp*self.pulse.t0
-        rnd_max = np.max(self.tdm**2)*self.pulse.wigner_transform(self.pulse.t0, de=effective_omega)*1.01
+        # setting maximum random number generated during sampling by taking the maximum TDM and the maximum of
+        # wigner transform (which is at tprime = t0 and de = w + lch*t0)
+        resonant_de = self.pulse.omega + self.pulse.lchirp*self.pulse.t0
+        rnd_max = np.max(self.tdm**2)*self.pulse.wigner_transform(self.pulse.t0, de=resonant_de)*1.01
 
         # preselection of initial conditions based on pulse spectrum in order to avoid long calculation of the Wigner
         # distribution for samples far from resonance (the more out of resonance with the field, the more the integrand
         # oscillates and the finer grid is needed, although the result is zero; will be resolved with analytic integrals)
         # True - sample will be skipped; False - sample will be considered for sampling of initial conditions
         if preselect:
-            preselected = np.interp(x=self.de, xp=self.field_ft_omega, fp=self.field_ft) < 1e-6  # considering field_ft is normalized and positive
-            print(f"  - Discarding {np.sum(preselected):d} samples that are not within the pulse spectrum [sigma(dE) < 10^-6].")
+            preselected = np.interp(x=self.de, xp=self.field_ft_omega,
+                fp=self.field_ft) < 1e-6  # considering field_ft is normalized and positive
+            print(
+                f"  - Discarding {np.sum(preselected):d} samples that are not within the pulse spectrum [sigma(dE) < 10^-6].")
         else:
             preselected = np.zeros(shape=(self.nstates, self.nsamples), dtype=bool)
 
@@ -437,8 +445,6 @@ class InitialConditions:
 
         i, nattempts, start = 0, 0, timer()  # i: loop index; nattempts: to calculate efficiency of the sampling; start: time t0
         while i < nsamples_ic:  # while is used in case we need to restart the loop when probability exceeds rnd_max
-            nattempts += 1
-
             # randomly selecting index of traj and excited state
             rnd_index = rng.integers(low=0, high=self.nsamples, dtype=int)
             rnd_state = rng.integers(low=0, high=self.nstates, dtype=int)
@@ -447,21 +453,24 @@ class InitialConditions:
             if preselected[rnd_state, rnd_index]:
                 continue
 
+            nattempts += 1
+
             # selecting randomly excitation time and random uniform number
             rnd_time = rng.uniform(low=self.pulse.tmin, high=self.pulse.tmax)
             rnd = rng.uniform(low=0, high=rnd_max)  # random number to be compared with Wig. dist.
 
             # excitation probability
-            rnd_de = self.de[rnd_state, rnd_index]
-            rnd_tdm = self.tdm[rnd_state, rnd_index]
-            prob = rnd_tdm**2*self.pulse.wigner_transform(rnd_time, rnd_de)
+            de = self.de[rnd_state, rnd_index]
+            tdm = self.tdm[rnd_state, rnd_index]
+            prob = tdm**2*self.pulse.wigner_transform(rnd_time, de)
 
             # check and handle negative probabilities
             if prob < -1e-12*rnd_max:  # check negative value bigger than integration precision
                 if neg_handling == 'error':
-                    print(f"\nERROR: Negative probability ({prob/rnd_max*100:.1e}%) encountered! Check flag 'neg_handling' "
-                          f"for more option how to handle negative probabilities. See also manual and ref XXX for more "
-                          f"information.\n")
+                    print(
+                        f"\nERROR: Negative probability ({prob/rnd_max*100:.1e}%) encountered! Check flag 'neg_handling' "
+                        f"for more option how to handle negative probabilities. See also manual and ref XXX for more "
+                        f"information.\n")
                     exit(1)
                 elif neg_handling == 'ignore':
                     continue
@@ -487,7 +496,8 @@ class InitialConditions:
         samples = samples[:, samples[0].argsort()]  # sorting according to sample index
         self.ics = samples
 
-        print(f"\n  - Time: {timer() - start:.3f} s\n  - Success rate of random sampling: {nsamples_ic/nattempts*100:.5f}%")
+        print(
+            f"\n  - Time: {timer() - start:.3f} s\n  - Success rate of random sampling: {nsamples_ic/nattempts*100:.5f}%")
 
         # getting unique initial conditions for each excited state
         unique_states, unique = np.zeros(shape=(self.nstates), dtype=int), []
@@ -497,24 +507,24 @@ class InitialConditions:
 
         # print indexes of trajectories that must be propagated
         if self.nstates == 1:
-            print(f"  - Selected {unique_states[0]} unique ICs from {self.nsamples} provided. Unique ICs to be "
-                  f"propagated:\n   ", *np.array(unique[0], dtype=str))
+            print(f"  - Selected {unique_states[0]} unique ICs (unique sample indexes) from "
+                  f"{self.nsamples} provided. Unique ICs to be propagated:\n   ", *np.array(unique[0], dtype=str))
         else:
             print(f"  - Selected {np.sum(unique_states)} unique ICs over {self.nstates} states from {self.nsamples} "
-                  f"positions and velocities provided.")
+                  f"positions and velocities provided. \n    Unique IC corresponds to a unique sample index and initial "
+                  f"electronic state.")
             for state in range(self.nstates):
                 if unique_states[state] == 0:
                     continue
-                print(f"  - State {state + 1} - {unique_states[state]} unique ICs to be propagated: \n   ", *np.array(unique[state], dtype=str))
+                print(f"  - State {state + 1} - {unique_states[state]} unique ICs to be propagated: \n   ",
+                    *np.array(unique[state], dtype=str))
 
         # save the selected samples
-        header = (
-            f"Sampling: number of ICs = {nsamples_ic}, number of unique ICs = {np.sum(unique_states):d}\n"
-            f"Field parameters: omega = {self.pulse.omega:.5e} a.u., "
-            f"linear_chirp = {self.pulse.lchirp:.5e} a.u., fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
-            f"t0 = {self.pulse.t0/self.fstoau:.3f} fs, envelope type = '{self.pulse.envelope_type}'\n"
-            f"index        exc. time (a.u.)   el. state     dE (a.u.)       |tdm| (a.u.)"
-        )
+        header = (f"Sampling: number of ICs = {nsamples_ic}, number of unique ICs = {np.sum(unique_states):d}\n"
+                  f"Field parameters: omega = {self.pulse.omega:.5e} a.u., "
+                  f"linear_chirp = {self.pulse.lchirp:.5e} a.u., fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
+                  f"t0 = {self.pulse.t0/self.fstoau:.3f} fs, envelope type = '{self.pulse.envelope_type}'\n"
+                  f"index        exc. time (a.u.)   el. state     dE (a.u.)       |tdm| (a.u.)")
         np.savetxt(output_fname, samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'], header=header)
         print(f"  - Output saved to file '{output_fname}'")
 
@@ -531,15 +541,14 @@ class InitialConditions:
         # determine and print convolution function
         # determine and print convolution function
         conv_eq = {
-            'gauss': "I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)",
+            'gauss'  : "I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)",
             'lorentz': "I(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-2",
-            'sech': "I(t) = sech(2*ln(1+sqrt(2))*t/fwhm)^2",
-            'sin': "I(t) = sin(pi/2*(t-t0+fwhm)/fwhm)^2 in range [t0-fwhm,t0+fwhm]",
-            'sin2': "I(t) = sin(pi/2*(t-t0+T)/T)^4 in range [t0-T,t0+T] where T=1.373412575*fwhm",
-        }
-        print(f"  - Convolution: {conv_eq[self.pulse.envelope_type]}\n"
-            f"  - Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
-            f"t0 = {self.pulse.t0/self.fstoau:.3f} fs")
+            'sech'   : "I(t) = sech(2*ln(1+sqrt(2))*t/fwhm)^2",
+            'sin'    : "I(t) = sin(pi/2*(t-t0+fwhm)/fwhm)^2 in range [t0-fwhm,t0+fwhm]",
+            'sin2'   : "I(t) = sin(pi/2*(t-t0+T)/T)^4 in range [t0-T,t0+T] where T=1.373412575*fwhm", }
+        print(f"  - Convolution: {conv_eq[self.pulse.envelope_type]}\t\t\t [The function must be normalized!]\n"
+              f"  - Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
+              f"t0 = {self.pulse.t0/self.fstoau:.3f} fs")
 
         print("  - Calculating normalized weights:")
         # creating a field for weights
@@ -550,11 +559,13 @@ class InitialConditions:
             self.weights[state] = self.tdm[state]**2*np.interp(self.de[state], self.field_ft_omega, self.field_ft)**2
 
             # analysis
-            sorted = np.sort(self.weights[state, :]/np.sum(self.weights[state, :]))[::-1]  # sorting from the largest weight to smallest
-            print(f"    > State {state + 1} -  analysis of normalized weights (weights/sum of weights on state {state + 1}):\n"
-                  f"      - Largest weight: {np.max(self.weights[state, :]):.3e}\n"
-                  f"      - Number of ICs making up 90% of S{state + 1} weights: {np.sum(np.cumsum(sorted) < 0.9) + 1:d}\n"
-                  f"      - Number of ICs with weights bigger than 0.001: {np.sum(self.weights[state, :] > 0.001):d}")
+            sorted = np.sort(self.weights[state, :]/np.sum(self.weights[state, :]))[
+                     ::-1]  # sorting from the largest weight to smallest
+            print(
+                f"    > State {state + 1} -  analysis of normalized weights (weights/sum of weights on state {state + 1}):\n"
+                f"      - Largest weight: {np.max(self.weights[state, :]):.3e}\n"
+                f"      - Number of ICs making up 90% of S{state + 1} weights: {np.sum(np.cumsum(sorted) < 0.9) + 1:d}\n"
+                f"      - Number of ICs with weights bigger than 0.001: {np.sum(self.weights[state, :] > 0.001):d}")
 
         # normalization of weights at given state
         self.weights /= np.sum(self.weights)
@@ -564,14 +575,12 @@ class InitialConditions:
         arr_print[0, :] = self.traj_index
         arr_print[1:, :] = self.weights
 
-        spacer = ' ' * 8
+        spacer = ' '*8
         weights_str = spacer.join([f'weight S{s + 1}' for s in range(self.nstates)])
-        header = (
-            f"Convolution: {conv_eq[self.pulse.envelope_type]}\n"
-            f"Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
-            f"t0 = {self.pulse.t0/self.fstoau:.3f} fs\n"
-            f"index        {weights_str}"
-        )
+        header = (f"Convolution: {conv_eq[self.pulse.envelope_type]}\n"
+                  f"Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
+                  f"t0 = {self.pulse.t0/self.fstoau:.3f} fs\n"
+                  f"index        {weights_str}")
         np.savetxt(output_fname, arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates, header=header)
 
         print(f"  - Weights saved to file '{output_fname}'")
@@ -589,13 +598,12 @@ def plot_spectrum(ics: InitialConditions) -> None:
     plt.get_current_fig_manager().set_window_title('UV/vis absorption spectrum')  # modify the window name from Figure x
 
     for state in range(ics.nstates):
-        axs[0].plot(ics.traj_index, ics.de[state]/ics.evtoau, color=colors[state], alpha=0.6, label=r"S$_\mathregular{%d}$"%state)
+        axs[0].plot(ics.traj_index, ics.de[state]/ics.evtoau, color=colors[state], alpha=0.6)
         axs[0].scatter(ics.traj_index, ics.de[state]/ics.evtoau, color=colors[state], s=5)
     axs[0].set_xlim(np.min(ics.traj_index) - 1, np.max(ics.traj_index) + 1)
     axs[0].set_xlabel("IC index")
     axs[0].set_ylabel(r"$\Delta E$ (eV)")
     axs[0].set_title(r"Excitation energies")
-    axs[0].legend(frameon=False, labelspacing=0.1)
     axs[0].minorticks_on()
     axs[0].tick_params('both', direction='in', which='both', top=True, right=True)
 
@@ -613,14 +621,15 @@ def plot_spectrum(ics: InitialConditions) -> None:
     axs[2].fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1], color=colors[-1], alpha=0.2)
     if ics.nstates > 1:
         for state in range(ics.nstates):
-            axs[2].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1], color=colors[state], linestyle='--')
+            axs[2].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1], color=colors[state], linestyle='--',
+            label=r"S$_\mathregular{%d}$"%(state+1))
             axs[2].fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1], color=colors[state], alpha=0.2)
     axs[2].set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
     axs[2].set_ylim(0, np.max(ics.spectrum[-1])*1.2)
     axs[2].set_xlabel(r"$E$ (eV)")
     axs[2].set_ylabel(r"$\sigma$ (cm$^2\cdot$molecule$^{-1}$)")
     axs[2].set_title(r"Absorption spectrum")
-    axs[2].legend(frameon=False, labelspacing=0.1)
+    axs[2].legend(frameon=True, labelspacing=0.1, edgecolor='white')
     axs[2].ticklabel_format(style='sci', axis='y', scilimits=(0, 0), useMathText=True)
     axs[2].minorticks_on()
     axs[2].tick_params('both', direction='in', which='both', top=True, right=True)
@@ -642,29 +651,32 @@ def plot_field(ics: InitialConditions) -> None:
     axs[0].plot(ics.field_t/ics.fstoau, ics.field, color=colors[0], linewidth=0.5, label='Field')
     axs[0].plot(ics.field_t/ics.fstoau, ics.field_envelope, color=colors[0], alpha=0.4)
     axs[0].plot(ics.field_t/ics.fstoau, -ics.field_envelope, color=colors[0], alpha=0.4)
-    axs[0].fill_between(ics.field_t/ics.fstoau, ics.field_envelope, -ics.field_envelope, color=colors[0], label='Envelope', alpha=0.2)
+    axs[0].fill_between(ics.field_t/ics.fstoau, ics.field_envelope, -ics.field_envelope, color=colors[0],
+        label='Envelope', alpha=0.2)
     axs[0].set_xlim(np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau))
     axs[0].set_ylim(np.min(-ics.field_envelope)*1.2, np.max(ics.field_envelope)*1.2)
     axs[0].set_xlabel(r"Time (fs)")
     axs[0].set_ylabel(r"$\vec{E}$")
     axs[0].set_title(r"Laser pulse field")
-    axs[0].legend(frameon=False, labelspacing=0.1, loc='upper left')
+    axs[0].legend(frameon=True, labelspacing=0.1, edgecolor='white', loc='upper left')
     axs[0].minorticks_on()
     axs[0].tick_params('both', direction='in', which='both', top=True, right=True)
 
     for state in range(ics.nstates):
-        axs[1].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[-1], linestyle='--', linewidth=1,
-                    alpha=0.5)
-    axs[1].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], label='Absorption spectrum')
-    axs[1].fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], alpha=0.2)
+        axs[1].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[-1],
+            linestyle='--', linewidth=1, alpha=0.5)
+    axs[1].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1],
+        label='Absorption spectrum')
+    axs[1].fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]),
+        color=colors[1], alpha=0.2)
     axs[1].plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
     axs[1].fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
     axs[1].set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
     axs[1].set_ylim(0, 1.2)
     axs[1].set_xlabel(r"$E$ (eV)")
     axs[1].set_ylabel(r"$\epsilon$")
-    axs[1].set_title(r"Pulse spectrum")
-    axs[1].legend(frameon=False, labelspacing=0.1)
+    axs[1].set_title(r"Pulse spectral intensity")
+    axs[1].legend(frameon=True, labelspacing=0.1, edgecolor='white')
     axs[1].minorticks_on()
     axs[1].tick_params('both', direction='in', which='both', top=True, right=True)
 
@@ -687,8 +699,9 @@ def plot_field(ics: InitialConditions) -> None:
         axs.set_ylim(0, 1.2)
         axs.set_xlabel(r"$E$ (eV)")
         axs.set_ylabel(r"Pulse spectrum")
-        axs.set_title(r"$\int_{-\infty}^\infty \vec{E}(t) \mathregular{d}t = \mathcal{F}[\vec{E}(t)]|_{\omega=0} \neq 0$"
-                      "\nViolation of Maxwell's equations!")
+        axs.set_title(
+            r"$\int_{-\infty}^\infty \vec{E}(t) \mathregular{d}t = \mathcal{F}[\vec{E}(t)]|_{\omega=0} \neq 0$"
+            "\nViolation of Maxwell's equations!")
         axs.minorticks_on()
         axs.tick_params('both', direction='in', which='both', top=True, right=True)
 
@@ -718,10 +731,11 @@ def plot_pda(ics: InitialConditions) -> None:
     emin, emax = np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau)
     tmin, tmax = np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau)
 
-    axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100), cmap=plt.cm.viridis, density=True, )
+    axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100),
+        cmap=plt.cm.viridis, density=True, )
     if ics.pulse.lchirp != 0:
-        axs.plot((ics.pulse.omega + 2*ics.pulse.lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color="white", linestyle="--",
-                 label=r"$\omega(t)$", )
+        axs.plot((ics.pulse.omega + 2*ics.pulse.lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color="white",
+            linestyle="--", label=r"$\omega(t)$", )
         axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
 
     ax_histy = fig.add_axes(rect_histy, sharey=axs)
@@ -731,12 +745,14 @@ def plot_pda(ics: InitialConditions) -> None:
     ax_histy.legend(frameon=True, framealpha=0.9, labelspacing=0.1, edgecolor='white')
 
     ax_histx = fig.add_axes(rect_histx, sharex=axs)
-    ax_histx.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], label='Absorption spectrum')
-    ax_histx.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1], alpha=0.2)
+    ax_histx.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1],
+        label='Absorption spectrum')
+    ax_histx.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]),
+        color=colors[1], alpha=0.2)
     ax_histx.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color=colors[0], label='Pulse spec. intensity')
     ax_histx.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft**2, color=colors[0], alpha=0.2)
     ax_histx.set_ylim(0, 1.2)
-    ax_histx.legend(frameon=False, labelspacing=0.1)
+    ax_histx.legend(frameon=True, labelspacing=0.1, edgecolor='white')
 
     ax_histx.tick_params("both", which='both', direction='in', labelbottom=False)
     ax_histy.tick_params("both", which='both', direction='in', labelleft=False)
@@ -762,15 +778,19 @@ def plot_pdaw(ics: InitialConditions) -> None:
     fig.suptitle("Selected initial conditions and their weights")
     plt.get_current_fig_manager().set_window_title('PDAW weights')  # modify the window name from Figure x
 
-    axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], label='Absorption spectrum')
-    axs.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1], alpha=0.2)
+    axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1],
+        label='Absorption spectrum')
+    axs.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]),
+        color=colors[-1], alpha=0.2)
 
     maxw = np.max(ics.weights)
     if ics.nstates > 1:
         for state in range(ics.nstates):
             # plotting spectrum
-            axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[state], linestyle='--')
-            axs.fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[state], alpha=0.2)
+            axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[state],
+                linestyle='--')
+            axs.fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]),
+                color=colors[state], alpha=0.2)
             # weights of initial conditions plotted as sticks with points
             axs.scatter(ics.de[state, :]/ics.evtoau, ics.weights[state, :]/maxw, color=colors[state], s=5)
             for index in range(ics.nsamples):
@@ -782,7 +802,7 @@ def plot_pdaw(ics: InitialConditions) -> None:
     axs.set_xlabel(r"$E$ (eV)")
     axs.set_ylabel(r"$\epsilon$")
     axs.set_title(r"Pulse spectrum")
-    axs.legend(frameon=False, labelspacing=0.1, loc='upper left')
+    axs.legend(frameon=True, labelspacing=0.1, edgecolor='white', loc='upper left')
     axs.minorticks_on()
     axs.tick_params('both', direction='in', which='both', top=True, right=True)
 
@@ -795,36 +815,41 @@ def parse_cmd_args():
     ### setting up parser ###
     parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-m", "--method", default='pda', choices=METHODS,
-                        help="Select either Promoted density approach (PDA) to generate initial conditions with excitation times or "
-                             "PDA for windowing (PDAW) to generate weights and convolution parameters.")
-    parser.add_argument("-np", "--npsamples", default=1000, type=positive_int, help="Number of initial conditions generated with PDA.")
+        help="Select either Promoted density approach (PDA) to generate initial conditions with excitation times or "
+             "PDA for windowing (PDAW) to generate weights and convolution parameters.")
+    parser.add_argument("-np", "--npsamples", default=1000, type=positive_int,
+        help="Number of initial conditions generated with PDA.")
 
     inp_file = parser.add_argument_group("Input file handling")
     inp_file.add_argument("-n", "--nsamples", default=0, type=positive_int,
-                          help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
+        help="Number of data points from the input file considered. By default all initial conditions provided in the input file are taken.")
     inp_file.add_argument("-ns", "--nstates", default=1, type=positive_int, help="Number of excited states considered.")
-    inp_file.add_argument("-eu", "--energy_unit", choices=ENERGY_UNITS, default='a.u.', help="Units in which excitation energies are provided.")
+    inp_file.add_argument("-eu", "--energy_unit", choices=ENERGY_UNITS, default='a.u.',
+        help="Units in which excitation energies are provided.")
     inp_file.add_argument("-tu", "--tdm_unit", choices=TDM_UNITS, default='a.u.',
-                          help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
+        help="Units in which magnitudes of transition dipole moments (|mu_ij|) are provided.")
     inp_file.add_argument("-ft", "--file_type", choices=FILE_TYPES, default='file', help="Input file type.")
 
     field = parser.add_argument_group('Field parameters')
     field.add_argument("-w", "--omega", required=True, type=positive_float, help="Frequency of the field in a.u.")
     field.add_argument("-f", "--fwhm", required=True, type=positive_float,
-                       help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
+        help="Full Width at Half Maximum (FWHM) parameter for the pulse intensity envelope in fs.")
     field.add_argument("-env", "--envelope_type", choices=ENVELOPE_TYPES, default='gauss', help="Field envelope type.")
-    field.add_argument("-lch", "--linear_chirp", default=0.0, type=float, help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
+    field.add_argument("-lch", "--linear_chirp", default=0.0, type=float,
+        help="Linear chirp [w(t) = w+lch*t] of the field frequency in a.u.")
     field.add_argument("-t0", "--t0", default=0.0, type=float, help="Time of the field maximum in fs.")
 
-    parser.add_argument("-neg", "--neg_handling", choices=NEG_PROB_HANDLING, default='error', help="Procedures how to handle negative probabilities.")
+    parser.add_argument("-neg", "--neg_handling", choices=NEG_PROB_HANDLING, default='error',
+        help="Procedures how to handle negative probabilities.")
     parser.add_argument("-s", "--random_seed", default=None, type=positive_int,
-                        help="Seed for the random number generator. Default: generate random seed from OS.")
+        help="Seed for the random number generator. Default: generate random seed from OS.")
     parser.add_argument("-ps", "--preselect", action="store_true",
-                        help="Preselect samples within pulse spectrum for PDA. This option provides significant speed "
-                             "up if the pulse spectrum covers only small part of the absorption spectrum as it avoids expensive "
-                             "calculation of W for non-resonant cases. The lost of accuracy should be minimal, yet we still "
-                             "recommend to use this option only if the calculation is too expensive, e.g. for very long pulses.")
-    parser.add_argument("-p", "--plot", action="store_true", help="Plot the input data and calculated results and save them as png images.")
+        help="Preselect samples within pulse spectrum for PDA. This option provides significant speed "
+             "up if the pulse spectrum covers only small part of the absorption spectrum as it avoids expensive "
+             "calculation of W for non-resonant cases. The lost of accuracy should be minimal, yet we still "
+             "recommend to use this option only if the calculation is too expensive, e.g. for very long pulses.")
+    parser.add_argument("-p", "--plot", action="store_true",
+        help="Plot the input data and calculated results and save them as png images.")
     parser.add_argument("input_file", help="Input file name.")
 
     return parser.parse_args()
@@ -849,8 +874,8 @@ def main():
 
     # convert pulse input to atomic units
     fstoau = 41.341374575751
-    pulse = LaserPulse(omega=config.omega, fwhm=config.fwhm*fstoau, envelope_type=config.envelope_type, lchirp=config.linear_chirp,
-                       t0=config.t0*fstoau, )
+    pulse = LaserPulse(omega=config.omega, fwhm=config.fwhm*fstoau, envelope_type=config.envelope_type,
+        lchirp=config.linear_chirp, t0=config.t0*fstoau, )
     print(f"* {pulse}")
 
     ics = InitialConditions(nsamples=config.nsamples, nstates=config.nstates, input_type=config.file_type)
@@ -870,8 +895,8 @@ def main():
 
     # perform either PDA or PDAW and plot
     if config.method == 'pda':
-        ics.sample_initial_conditions(nsamples_ic=config.npsamples, neg_handling=config.neg_handling, preselect=config.preselect,
-                                      seed=config.random_seed)
+        ics.sample_initial_conditions(nsamples_ic=config.npsamples, neg_handling=config.neg_handling,
+            preselect=config.preselect, seed=config.random_seed)
         if config.plot:
             plot_pda(ics)
 
