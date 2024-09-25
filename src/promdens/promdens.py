@@ -527,18 +527,17 @@ class InitialConditions:
         print("* Generating weights and convolution for windowing.")
 
         # determine and print convolution function
-        if self.pulse.envelope_type == 'gauss':
-            self.conv = "I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)"
-        elif self.pulse.envelope_type == 'lorentz':
-            self.conv = "I(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-2"
-        elif self.pulse.envelope_type == 'sech':
-            self.conv = "I(t) = sech(2*ln(1+sqrt(2))*t/fwhm)^2"
-        elif self.pulse.envelope_type == 'sin':
-            self.conv = "I(t) = sin(pi/2*(t-t0+fwhm)/fwhm)^2 in range [t0-fwhm,t0+fwhm]"
-        elif self.pulse.envelope_type == 'sin2':
-            self.conv = "I(t) = sin(pi/2*(t-t0+T)/T)^4 in range [t0-T,t0+T] where T=1.373412575*fwhm"
-        print(f"  - Convolution: {self.conv}\n  - Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
-              f"t0 = {self.pulse.t0/self.fstoau:.3f} fs)")
+        # determine and print convolution function
+        conv_eq = {
+            'gauss': "I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)",
+            'lorentz': "I(t) = (1+4/(1+sqrt(2))*(t/fwhm)^2)^-2",
+            'sech': "I(t) = sech(2*ln(1+sqrt(2))*t/fwhm)^2",
+            'sin': "I(t) = sin(pi/2*(t-t0+fwhm)/fwhm)^2 in range [t0-fwhm,t0+fwhm]",
+            'sin2': "I(t) = sin(pi/2*(t-t0+T)/T)^4 in range [t0-T,t0+T] where T=1.373412575*fwhm",
+        }
+        print(f"  - Convolution: {conv_eq[self.pulse.envelope_type]}\n"
+            f"  - Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
+            f"t0 = {self.pulse.t0/self.fstoau:.3f} fs")
 
         print("  - Calculating normalized weights:")
         # creating a field for weights
@@ -563,10 +562,15 @@ class InitialConditions:
         arr_print[0, :] = self.traj_index
         arr_print[1:, :] = self.weights
 
-        np.savetxt(output_fname, arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates,
-                   header=f"Convolution: '{self.conv}'\nParameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
-                          f"t0 = {self.pulse.t0/self.fstoau:.3f} fs\n"
-                          f"index        " + str(' '*8).join([f"weight S{s + 1:d}" for s in range(self.nstates)]))
+        spacer = ' ' * 8
+        weights_str = spacer.join([f'weight S{s + 1}' for s in range(self.nstates)])
+        header = (
+            f"Convolution: '{conv_eq[self.pulse.envelope_type]}'\n"
+            f"Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
+            f"t0 = {self.pulse.t0/self.fstoau:.3f} fs\n"
+            f"index        {weights_str}"
+        )
+        np.savetxt(output_fname, arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates, header=header)
 
         print(f"  - Weights saved to file '{output_fname}'")
 
