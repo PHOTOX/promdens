@@ -648,12 +648,12 @@ def plot_field(ics: InitialConditions) -> None:
     fig.suptitle("Pulse characteristics")
     plt.get_current_fig_manager().set_window_title('Pulse characteristics')  # modify the window name from Figure x
 
-    axs[0].plot(ics.field_t/ics.fstoau, ics.field, color=colors[0], linewidth=0.5, label='Field')
-    axs[0].plot(ics.field_t/ics.fstoau, ics.field_envelope, color=colors[0], alpha=0.4)
-    axs[0].plot(ics.field_t/ics.fstoau, -ics.field_envelope, color=colors[0], alpha=0.4)
-    axs[0].fill_between(ics.field_t/ics.fstoau, ics.field_envelope, -ics.field_envelope, color=colors[0],
-        label='Envelope', alpha=0.2)
-    axs[0].set_xlim(np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau))
+    t_fs = ics.field_t/ics.fstoau
+    axs[0].plot(t_fs, ics.field, color=colors[0], linewidth=0.5, label='Field')
+    axs[0].plot(t_fs, ics.field_envelope, color=colors[0], alpha=0.4)
+    axs[0].plot(t_fs, -ics.field_envelope, color=colors[0], alpha=0.4)
+    axs[0].fill_between(t_fs, ics.field_envelope, -ics.field_envelope, color=colors[0], label='Envelope', alpha=0.2)
+    axs[0].set_xlim(np.min(t_fs), np.max(t_fs))
     axs[0].set_ylim(np.min(-ics.field_envelope)*1.2, np.max(ics.field_envelope)*1.2)
     axs[0].set_xlabel(r"Time (fs)")
     axs[0].set_ylabel(r"$\vec{E}$")
@@ -728,29 +728,37 @@ def plot_pda(ics: InitialConditions) -> None:
     rect_histy = [left + width + spacing, bottom, 0.2, height]
     axs = fig.add_axes(rect_scatter)
 
-    emin, emax = np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau)
-    tmin, tmax = np.min(ics.field_t/ics.fstoau), np.max(ics.field_t/ics.fstoau)
+    t_fs = ics.field_t / ics.fstoau
+    spectrum_au = ics.spectrum[0]/ics.evtoau
+    emin, emax = np.min(spectrum_au), np.max(spectrum_au)
+    tmin, tmax = np.min(t_fs), np.max(t_fs)
 
     axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100),
         cmap=plt.cm.viridis, density=True, )
     if ics.pulse.lchirp != 0:
-        axs.plot((ics.pulse.omega + 2*ics.pulse.lchirp*ics.field_t)/ics.evtoau, ics.field_t/ics.fstoau, color="white",
-            linestyle="--", label=r"$\omega(t)$", )
+        axs.plot((ics.pulse.omega + 2*ics.pulse.lchirp*ics.field_t)/ics.evtoau, t_fs, color="white", linestyle="--",
+                 label=r"$\omega(t)$")
         axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
 
+    # Plot pulse intensity
+    pulse_intensity = ics.field_envelope**2
     ax_histy = fig.add_axes(rect_histy, sharey=axs)
-    ax_histy.plot(ics.field_envelope**2, ics.field_t/ics.fstoau, color=colors[0], label="Pulse \nintensity")
-    ax_histy.fill_betweenx(ics.field_t/ics.fstoau, ics.field_envelope**2, 0, color=colors[0], alpha=0.2)
+    ax_histy.plot(pulse_intensity, t_fs, color=colors[0], label="Pulse \nintensity")
+    ax_histy.fill_betweenx(t_fs, pulse_intensity, 0, color=colors[0], alpha=0.2)
     ax_histy.set_xlim(0, 1.2)
     ax_histy.legend(frameon=True, framealpha=0.9, labelspacing=0.1, edgecolor='white')
 
+    # Plot UV/vis absorption spectrum
     ax_histx = fig.add_axes(rect_histx, sharex=axs)
-    ax_histx.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1],
-        label='Absorption spectrum')
-    ax_histx.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]),
-        color=colors[1], alpha=0.2)
-    ax_histx.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color=colors[0], label='Pulse spec. intensity')
-    ax_histx.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft**2, color=colors[0], alpha=0.2)
+    normalized_cross_section = ics.spectrum[-1]/np.max(ics.spectrum[-1])
+    ax_histx.plot(spectrum_au, normalized_cross_section, color=colors[1], label='Absorption spectrum')
+    ax_histx.fill_between(spectrum_au, ics.spectrum[-1]*0, normalized_cross_section, color=colors[1], alpha=0.2)
+
+    # Plot pulse spectral intensity
+    pulse_omega_au = ics.field_ft_omega/ics.evtoau
+    spec_intensity = ics.field_ft**2
+    ax_histx.plot(pulse_omega_au, spec_intensity , color=colors[0], label='Pulse spec. intensity')
+    ax_histx.fill_between(pulse_omega_au, ics.field_ft*0, spec_intensity, color=colors[0], alpha=0.2)
     ax_histx.set_ylim(0, 1.2)
     ax_histx.legend(frameon=True, labelspacing=0.1, edgecolor='white')
 
