@@ -669,16 +669,20 @@ def plot_field(ics: InitialConditions) -> None:
     axs[0].minorticks_on()
     axs[0].tick_params('both', direction='in', which='both', top=True, right=True)
 
+    # Plot normalized absorption spectrum
+    energy_ev = ics.spectrum[0]/ics.evtoau
+    total_intensity = ics.spectrum[-1]/np.max(ics.spectrum[-1])
     for state in range(ics.nstates):
-        axs[1].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]), color=colors[-1],
-            linestyle='--', linewidth=1, alpha=0.5)
-    axs[1].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[1],
-        label='Absorption spectrum')
-    axs[1].fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]),
-        color=colors[1], alpha=0.2)
+        state_intensity = ics.spectrum[state + 1]/np.max(ics.spectrum[-1])
+        axs[1].plot(energy_ev, state_intensity, color=colors[-1], linestyle='--', linewidth=1, alpha=0.5)
+
+    axs[1].plot(energy_ev, total_intensity, color=colors[1], label='Absorption spectrum')
+    axs[1].fill_between(energy_ev, total_intensity*0, total_intensity, color=colors[1], alpha=0.2)
+
+    # Plot pulse spectrum
     axs[1].plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
     axs[1].fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
-    axs[1].set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
+    axs[1].set_xlim(np.min(energy_ev), np.max(energy_ev))
     axs[1].set_ylim(0, 1.2)
     axs[1].set_xlabel(r"$E$ (eV)")
     axs[1].set_ylabel(r"$\epsilon$")
@@ -735,7 +739,7 @@ def plot_pda(ics: InitialConditions) -> None:
     rect_histy = [left + width + spacing, bottom, 0.2, height]
     axs = fig.add_axes(rect_scatter)
 
-    t_fs = ics.field_t / ics.fstoau
+    t_fs = ics.field_t/ics.fstoau
     spectrum_ev = ics.spectrum[0]/ics.evtoau
     emin, emax = np.min(spectrum_ev), np.max(spectrum_ev)
     tmin, tmax = np.min(t_fs), np.max(t_fs)
