@@ -567,7 +567,7 @@ class InitialConditions:
         spacer = ' ' * 8
         weights_str = spacer.join([f'weight S{s + 1}' for s in range(self.nstates)])
         header = (
-            f"Convolution: '{conv_eq[self.pulse.envelope_type]}'\n"
+            f"Convolution: {conv_eq[self.pulse.envelope_type]}\n"
             f"Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
             f"t0 = {self.pulse.t0/self.fstoau:.3f} fs\n"
             f"index        {weights_str}"
