@@ -406,7 +406,7 @@ class InitialConditions:
         :return: store the initial conditions within the class and save output
         """
 
-        print(f"* Sampling {nsamples_ic:d} initial conditions considering the laser pulse.")
+        print(f"* Sampling {nsamples_ic} initial conditions considering the laser pulse.")
 
         def progress(percent, width, n, str=''):
             """Function to print progress of calculation."""
@@ -417,8 +417,10 @@ class InitialConditions:
         # variable storing initial conditions
         samples = np.zeros((5, nsamples_ic))  # index, excitation time, initial excited state, de, tdm
 
-        # setting maximum random number generated during sampling
-        rnd_max = (np.max(self.tdm**2)*self.pulse.wigner_transform(self.pulse.t0, de=self.pulse.omega + self.pulse.lchirp*self.pulse.t0)*1.01)
+        # setting maximum random number generated during sampling,
+        # taking the maximum TDM and the maximum of wigner transform (which is at tprime=t0)
+        effective_omega = self.pulse.omega + self.pulse.lchirp*self.pulse.t0
+        rnd_max = np.max(self.tdm**2)*self.pulse.wigner_transform(self.pulse.t0, de=effective_omega)*1.01
 
         # preselection of initial conditions based on pulse spectrum in order to avoid long calculation of the Wigner
         # distribution for samples far from resonance (the more out of resonance with the field, the more the integrand
@@ -450,7 +452,9 @@ class InitialConditions:
             rnd = rng.uniform(low=0, high=rnd_max)  # random number to be compared with Wig. dist.
 
             # excitation probability
-            prob = self.tdm[rnd_state, rnd_index]**2*self.pulse.wigner_transform(rnd_time, self.de[rnd_state, rnd_index])
+            rnd_de = self.de[rnd_state, rnd_index]
+            rnd_tdm = self.tdm[rnd_state, rnd_index]
+            prob = rnd_tdm**2*self.pulse.wigner_transform(rnd_time, rnd_de)
 
             # check and handle negative probabilities
             if prob < -1e-12*rnd_max:  # check negative value bigger than integration precision
@@ -496,7 +500,7 @@ class InitialConditions:
             print(f"  - Selected {unique_states[0]} unique ICs from {self.nsamples} provided. Unique ICs to be "
                   f"propagated:\n   ", *np.array(unique[0], dtype=str))
         else:
-            print(f"  - Selected {np.sum(unique_states)} unique ICs over {self.nstates} state from {self.nsamples} "
+            print(f"  - Selected {np.sum(unique_states)} unique ICs over {self.nstates} states from {self.nsamples} "
                   f"positions and velocities provided.")
             for state in range(self.nstates):
                 if unique_states[state] == 0:
@@ -505,7 +509,7 @@ class InitialConditions:
 
         # save the selected samples
         np.savetxt(output_fname, samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'],
-                   header=f"Sampling: number of ICs = {nsamples_ic:d}, number of unique ICs = {np.sum(unique_states):d}\n"
+                   header=f"Sampling: number of ICs = {nsamples_ic}, number of unique ICs = {np.sum(unique_states):d}\n"
                           f"Field parameters: omega = {self.pulse.omega:.5e} a.u., "
                           f"linear_chirp = {self.pulse.lchirp:.5e} a.u., fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
                           f"t0 = {self.pulse.t0/self.fstoau:.3f} fs, envelope type = '{self.pulse.envelope_type}'\n"
