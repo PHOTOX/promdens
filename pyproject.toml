@@ -16,7 +16,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/PHOTOX/promdens"
 Documentation = "https://github.com/PHOTOX/promdens/blob/main/README.md"
-Repository = "https://github.com/PHOTOX/promdens/tree/main"
+Repository = "https://github.com/PHOTOX/promdens.git"
 Issues = "https://github.com/PHOTOX/promdens/issues"
 
 [project.scripts]
