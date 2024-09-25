@@ -598,8 +598,10 @@ def plot_spectrum(ics: InitialConditions) -> None:
     plt.get_current_fig_manager().set_window_title('UV/vis absorption spectrum')  # modify the window name from Figure x
 
     for state in range(ics.nstates):
-        axs[0].plot(ics.traj_index, ics.de[state]/ics.evtoau, color=colors[state], alpha=0.6)
-        axs[0].scatter(ics.traj_index, ics.de[state]/ics.evtoau, color=colors[state], s=5)
+        exc_energy_ev = ics.de[state]/ics.evtoau
+        axs[0].plot(ics.traj_index, exc_energy_ev, color=colors[state], alpha=0.6)
+        axs[0].scatter(ics.traj_index, exc_energy_ev, color=colors[state], s=5)
+
     axs[0].set_xlim(np.min(ics.traj_index) - 1, np.max(ics.traj_index) + 1)
     axs[0].set_xlabel("IC index")
     axs[0].set_ylabel(r"$\Delta E$ (eV)")
@@ -617,14 +619,19 @@ def plot_spectrum(ics: InitialConditions) -> None:
     axs[1].minorticks_on()
     axs[1].tick_params('both', direction='in', which='both', top=True, right=True)
 
-    axs[2].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1], color=colors[-1], label='Total spectrum')
-    axs[2].fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1], color=colors[-1], alpha=0.2)
+    energy_ev = ics.spectrum[0]/ics.evtoau
+    total_cross_section = ics.spectrum[-1]
+    axs[2].plot(energy_ev, total_cross_section, color=colors[-1], label='Total spectrum')
+    axs[2].fill_between(energy_ev, total_cross_section*0, total_cross_section, color=colors[-1], alpha=0.2)
+    # Decompose spectrum into individual adiabatic states
     if ics.nstates > 1:
-        for state in range(ics.nstates):
-            axs[2].plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[state + 1], color=colors[state], linestyle='--',
-            label=r"S$_\mathregular{%d}$"%(state+1))
-            axs[2].fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1], color=colors[state], alpha=0.2)
-    axs[2].set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
+        for s in range(ics.nstates):
+            state_cross_section = ics.spectrum[s+1]
+            label = r"S$_\mathregular{%d}$"%(s+1)
+            axs[2].plot(energy_ev, state_cross_section, color=colors[s], linestyle='--', label=label)
+            axs[2].fill_between(energy_ev, 0, state_cross_section, color=colors[s], alpha=0.2)
+
+    axs[2].set_xlim(np.min(energy_ev), np.max(energy_ev))
     axs[2].set_ylim(0, np.max(ics.spectrum[-1])*1.2)
     axs[2].set_xlabel(r"$E$ (eV)")
     axs[2].set_ylabel(r"$\sigma$ (cm$^2\cdot$molecule$^{-1}$)")
@@ -729,8 +736,8 @@ def plot_pda(ics: InitialConditions) -> None:
     axs = fig.add_axes(rect_scatter)
 
     t_fs = ics.field_t / ics.fstoau
-    spectrum_au = ics.spectrum[0]/ics.evtoau
-    emin, emax = np.min(spectrum_au), np.max(spectrum_au)
+    spectrum_ev = ics.spectrum[0]/ics.evtoau
+    emin, emax = np.min(spectrum_ev), np.max(spectrum_ev)
     tmin, tmax = np.min(t_fs), np.max(t_fs)
 
     axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100),
@@ -751,8 +758,8 @@ def plot_pda(ics: InitialConditions) -> None:
     # Plot UV/vis absorption spectrum
     ax_histx = fig.add_axes(rect_histx, sharex=axs)
     normalized_cross_section = ics.spectrum[-1]/np.max(ics.spectrum[-1])
-    ax_histx.plot(spectrum_au, normalized_cross_section, color=colors[1], label='Absorption spectrum')
-    ax_histx.fill_between(spectrum_au, ics.spectrum[-1]*0, normalized_cross_section, color=colors[1], alpha=0.2)
+    ax_histx.plot(spectrum_ev, normalized_cross_section, color=colors[1], label='Absorption spectrum')
+    ax_histx.fill_between(spectrum_ev, ics.spectrum[-1]*0, normalized_cross_section, color=colors[1], alpha=0.2)
 
     # Plot pulse spectral intensity
     pulse_omega_au = ics.field_ft_omega/ics.evtoau
