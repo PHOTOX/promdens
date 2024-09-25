@@ -508,12 +508,14 @@ class InitialConditions:
                 print(f"  - State {state + 1} - {unique_states[state]} unique ICs to be propagated: \n   ", *np.array(unique[state], dtype=str))
 
         # save the selected samples
-        np.savetxt(output_fname, samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'],
-                   header=f"Sampling: number of ICs = {nsamples_ic}, number of unique ICs = {np.sum(unique_states):d}\n"
-                          f"Field parameters: omega = {self.pulse.omega:.5e} a.u., "
-                          f"linear_chirp = {self.pulse.lchirp:.5e} a.u., fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
-                          f"t0 = {self.pulse.t0/self.fstoau:.3f} fs, envelope type = '{self.pulse.envelope_type}'\n"
-                          f"index        exc. time (a.u.)   el. state     dE (a.u.)       |tdm| (a.u.)")
+        header = (
+            f"Sampling: number of ICs = {nsamples_ic}, number of unique ICs = {np.sum(unique_states):d}\n"
+            f"Field parameters: omega = {self.pulse.omega:.5e} a.u., "
+            f"linear_chirp = {self.pulse.lchirp:.5e} a.u., fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
+            f"t0 = {self.pulse.t0/self.fstoau:.3f} fs, envelope type = '{self.pulse.envelope_type}'\n"
+            f"index        exc. time (a.u.)   el. state     dE (a.u.)       |tdm| (a.u.)"
+        )
+        np.savetxt(output_fname, samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'], header=header)
         print(f"  - Output saved to file '{output_fname}'")
 
     def windowing(self, output_fname='pdaw.dat'):
