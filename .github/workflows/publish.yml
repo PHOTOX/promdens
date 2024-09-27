@@ -26,7 +26,6 @@ jobs:
   test-publish:
     needs: [dist]
     name: Publish to TestPyPI
-    if: github.repository == 'PHOTOX/promdens'
     if: >-
       github.repository == 'PHOTOX/promdens' &&
       github.event_name == 'pull_request' &&
