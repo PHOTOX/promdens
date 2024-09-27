@@ -48,6 +48,11 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
 
+      # Remove the PR label which triggered this release
+      - uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          labels: test-release
+
   pypi-publish:
     name: Publish release to PyPI
     needs: [dist]
