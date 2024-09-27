@@ -1,26 +1,31 @@
 # Promoted Density Approach code
 
-`promdens.py` is a code implementing Promoted Density Approach (PDA) and its version for windowing (PDAW) freely available to the scientific community.
-The code is constructed as a standalone Python script, requiring only basic Python libraries such as matplotlib or numpy. 
-In the future, the authors plan to turn the script into a Python library that can be downloaded via the pip command and integrated to other codes. 
+`promdens.py` is a code implementing Promoted Density Approach (PDA) and its version for windowing (PDAW) freely available to the scientific community under MIT license.
 
-### Necessary python libraries
-The code was tested with Python 3.7 and higher. The necessary python libraries and their version that were used in development:
-* `numpy (1.26.2)`
-* `matplotlib (3.8.2)`
+### Installation
+The code is published on PyPI and can be installed via pip
 
-### Usage of `promdens.py`
+```console
+pip install promdens
+```
+
+The minimum supported Python version is 3.7. The code dependens on numpy and matplotlib libraries that are automatically installed by pip.
+
+### Usage
 The code requires information about the method to use (that is, PDA or PDAW), the number of excited states to consider, 
 the number of initials conditions to be generated, and the characteristics of the laser pulse, such as the envelope type 
 (Gaussian, Lorentzian, sech, etc.), the pulse frequency, the linear chirp parameter, and the full width at half maximum parameter. 
 The code can be launched from a terminal with a series of flags as follows
 
-```
-$ python3 promdens.py --method pda --energy_units a.u. --tdm_units debye --nstates 2 --fwhm 3 --omega 0.355 --npsamples 10 --envelope_type gauss input_file.dat
+```console
+promdens --method pda --energy_units a.u. --tdm_units debye --nstates 2 --fwhm 3 --omega 0.355 --npsamples 10 --envelope_type gauss input_file.dat
 ```
 
 The help for the input parameters is available by running
-`$ python3 promdens.py --help`
+
+```console
+promdens.py --help`
+```
 where the units and character of different parameters are described.
 
 The input file should contain information about the excitation energies and magnitudes of the transition dipole moments 
