@@ -54,7 +54,7 @@ jobs:
       # If the release succeeded, re-triggering the release would fail anyway,
       # unless the version would be bumped again.
       - name: Remove test-release label
-        if: failed()
+        if: failure()
         uses: actions-ecosystem/action-remove-labels@v1
         with:
           labels: test-release
