@@ -9,13 +9,29 @@ The code is published on PyPI and can be installed via pip
 pip install promdens
 ```
 
-The minimum supported Python version is 3.7. The code dependens on numpy and matplotlib libraries that are automatically installed by pip.
-
 After installation, the code is available as via the `promdens` command. To print help, run:
 
 ```console
 promdens --help
 ```
+
+The minimum supported Python version is 3.7.
+The code dependends on `numpy` and `matplotlib` libraries that are automatically installed by pip.
+However, since pip by default installs packages into a global Python environment,
+it can break previously installed packages e.g. by installing incompatible version of numpy.
+
+Therefore, we recommend using tools like [pipx](https://pipx.pypa.io/stable/) or [uv](https://docs.astral.sh/uv) which install the dependencies into an isolated python environment, but still make the `promdens` command globally available.
+
+```console
+pip install pipx
+pipx install promdens
+```
+
+```console
+pip install uv
+uv tool install pipx
+```
+
 
 ### Usage
 The code requires information about the method to use (that is, PDA or PDAW), the number of excited states to consider, 
