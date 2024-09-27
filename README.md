@@ -29,7 +29,7 @@ pipx install promdens
 
 ```console
 pip install uv
-uv tool install pipx
+uv tool install promdens
 ```
 
 
