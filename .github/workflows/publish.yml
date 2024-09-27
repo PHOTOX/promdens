@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 env:
   FORCE_COLOR: 3
@@ -24,6 +25,9 @@ jobs:
     needs: [dist]
     name: Publish to TestPyPI
     if: github.repository == 'PHOTOX/promdens'
+    if: >-
+      github.repository == 'PHOTOX/promdens' &&
+      github.ref_type != 'tag'
     environment:
        name: testpypi
        url: https://test.pypi.org/p/promdens/
@@ -43,7 +47,7 @@ jobs:
 
   pypi-publish:
     name: Publish release to PyPI
-    needs: [test-publish]
+    needs: [dist]
     if: >-
       github.repository == 'PHOTOX/promdens' &&
       github.event_name == 'push' &&
