@@ -4,9 +4,9 @@ authors:
   - family-names: Janoš
     given-names: Jiří
     orcid: https://orcid.org/0000-0001-5903-8538
-title: "Promoted Nuclear Density Approach"
+  - family-names: Hollas
+    given-names: Daniel
+title: "Promoted Density Approach Code"
 version: 1.0.0
-identifiers:
-  - type: doi
-    value: not yet
-date-released: 2024-08-30
+url: "https://github.com/PHOTOX/promdens"
+date-released: 2024-09-27
