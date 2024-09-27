@@ -30,6 +30,7 @@ jobs:
     if: >-
       github.repository == 'PHOTOX/promdens' &&
       github.event_name == 'pull_request' &&
+      github.event.action == 'labeled' &&
       github.event.label.name == 'test-release'
     environment:
        name: testpypi
