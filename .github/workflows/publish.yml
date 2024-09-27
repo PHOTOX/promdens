@@ -72,7 +72,7 @@ jobs:
        url: https://pypi.org/p/promdens/
     permissions:
       id-token: write
-      contents: write
+      pull_request: write
 
     steps:
       - uses: actions/download-artifact@v4
