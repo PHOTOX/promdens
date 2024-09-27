@@ -5,6 +5,14 @@ authors = [
   { name="Jiri Janos", email="jiri.janos98@gmail.com" },
   { name="Daniel Hollas", email="danekhollas@gmail.com" },
 ]
+license = {file = 'LICENSE'}
+classifiers = [
+  'Development Status :: 5 - Production/Stable',
+  'License :: OSI Approved :: MIT License',
+  'Programming Language :: Python',
+  'Programming Language :: Python :: 3 :: Only',
+  'Topic :: Scientific/Engineering'
+]
 description = "Promoted Density Approach for sampling initial conditions for trajectory-based nonadiabatic photodynamics"
 readme = "README.md"
 requires-python = ">=3.7"
