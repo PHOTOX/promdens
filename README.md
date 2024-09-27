@@ -1,6 +1,6 @@
 # Promoted Density Approach code
 
-`promdens.py` is a code implementing Promoted Density Approach (PDA) and its version for windowing (PDAW) freely available to the scientific community under MIT license.
+`promdens` is a Python code implementing Promoted Density Approach (PDA) and its version for windowing (PDAW) freely available to the scientific community under MIT license.
 
 ### Installation
 The code is published on PyPI and can be installed via pip
@@ -11,6 +11,12 @@ pip install promdens
 
 The minimum supported Python version is 3.7. The code dependens on numpy and matplotlib libraries that are automatically installed by pip.
 
+After installation, the code is available as via the `promdens` command. To print help, run:
+
+```console
+promdens --help
+```
+
 ### Usage
 The code requires information about the method to use (that is, PDA or PDAW), the number of excited states to consider, 
 the number of initials conditions to be generated, and the characteristics of the laser pulse, such as the envelope type 
@@ -20,13 +26,6 @@ The code can be launched from a terminal with a series of flags as follows
 ```console
 promdens --method pda --energy_units a.u. --tdm_units debye --nstates 2 --fwhm 3 --omega 0.355 --npsamples 10 --envelope_type gauss input_file.dat
 ```
-
-The help for the input parameters is available by running
-
-```console
-promdens.py --help`
-```
-where the units and character of different parameters are described.
 
 The input file should contain information about the excitation energies and magnitudes of the transition dipole moments 
 for each pair of sampled nuclear positions and momenta (label by an index number).
