@@ -1,6 +1,6 @@
 [project]
 name = "promdens"
-version = "1.0.0a1"
+version = "1.0.0"
 authors = [
   { name="Jiri Janos", email="jiri.janos98@gmail.com" },
   { name="Daniel Hollas", email="danekhollas@gmail.com" },
