@@ -114,8 +114,8 @@ To simplify the integral evaluation, we implemented simpler Wigner pulse envelop
 
 $$\mathcal{W}_\varepsilon(t,\omega) = \int _{-\infty}^{\infty}  \varepsilon\left(t+\frac{s}{2}\right) \varepsilon\left(t-\frac{s}{2}\right) \mathrm{e}^{-i\omega s}  \mathrm{d} s$$
 
-where $$\varepsilon$$ is the pulse envelope. While `lorentz`, `sin2` and `sech` the $$\mathcal{W}_\varepsilon$$ is still calculated numerically by employing the trapezoid rule for the integral, the `gauss` and `sin` envelope Wigner transforms are calculated analytically according to analytic formulas. In the following analytic formulas, we apply a substitution 
-$$\Omega = \Delta E/\hbar - \omega$$.
+where $\varepsilon$ is the pulse envelope. While `lorentz`, `sin2` and `sech` the $\mathcal{W}_\varepsilon$ is still calculated numerically by employing the trapezoid rule for the integral, the `gauss` and `sin` envelope Wigner transforms are calculated analytically according to analytic formulas. In the following analytic formulas, we apply a substitution 
+$\Omega = \Delta E/\hbar - \omega$.
 
 #### Gaussian envelope
 $$\mathcal{W}_\varepsilon(t^\prime,\omega)=\tau\sqrt{\frac{\pi}{\ln2}}16^{-\frac{(t^\prime - t_0)^2}{\tau^2}}\exp\left(-\frac{\tau^2\omega^2}{\ln16}\right)$$
