@@ -6,7 +6,7 @@ authors:
     orcid: https://orcid.org/0000-0001-5903-8538
   - family-names: Hollas
     given-names: Daniel
-title: "Promoted Density Approach Code"
+title: "PROMDENS: Promoted Density Approach code"
 version: 1.0.0
 url: "https://github.com/PHOTOX/promdens"
-date-released: 2024-09-27
+date-released: 2024-09-28
