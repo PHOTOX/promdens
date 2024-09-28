@@ -4,7 +4,9 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
+  pull_request:
+    # Trigger TestPyPI publish when the `test-release` label is added to a PR
+    types: [labeled]
 
 env:
   FORCE_COLOR: 3
@@ -24,15 +26,17 @@ jobs:
   test-publish:
     needs: [dist]
     name: Publish to TestPyPI
-    if: github.repository == 'PHOTOX/promdens'
     if: >-
       github.repository == 'PHOTOX/promdens' &&
-      github.ref_type != 'tag'
+      github.event_name == 'pull_request' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'test-release'
     environment:
        name: testpypi
        url: https://test.pypi.org/p/promdens/
     permissions:
       id-token: write
+      pull-requests: write
     runs-on: ubuntu-latest
 
     steps:
@@ -44,6 +48,17 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+
+      # Remove the PR label which triggered this release,
+      # but only if the release failed. Presumably, in this case we might want
+      # to fix whatever caused the failure and re-trigger the test release.
+      # If the release succeeded, re-triggering the release would fail anyway,
+      # unless the version would be bumped again.
+      - name: Remove test-release label
+        if: failure()
+        uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          labels: test-release
 
   pypi-publish:
     name: Publish release to PyPI
