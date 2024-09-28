@@ -4,7 +4,7 @@
 Derivation of PDA and PDAW and its benchmark against quantum dynamics can be found at [ArXiV](https://arxiv.org/abs/2408.17359) or soon at JPCL.
 
 ### Installation
-The code is published on PyPI and can be installed via pip
+The code is published on PyPI and can be installed with pip
 
 ```console
 pip install promdens
@@ -44,7 +44,7 @@ the number of initials conditions to be generated, and the characteristics of th
 The code can be launched from a terminal with a series of flags as follows
 
 ```console
-promdens --method pda --energy_units a.u. --tdm_units debye --nstates 2 --fwhm 3 --omega 0.355 --npsamples 10 --envelope_type gauss input_file.dat
+promdens --method pda --energy_unit a.u. --tdm_unit debye --nstates 2 --fwhm 3 --omega 0.355 --npsamples 10 --envelope_type gauss input_file.dat
 ```
 
 The input file should contain information about the excitation energies and magnitudes of the transition dipole moments 
@@ -66,25 +66,25 @@ In the following, we provide an example of the input file for the first two exci
 
 Using this input file and running the command line above, the user receives the following output file called `pda.dat` containing information about excitation times and initial excited states:
 ```
-# Sampling: number of ICs = 10, number of unique ICs = 6
+# Sampling: number of ICs = 10, number of unique ICs = 5
 # Field parameters: omega = 3.55000e-01 a.u., linear_chirp = 0.00000e+00 a.u., fwhm = 3.000 fs, t0 = 0.000 fs, envelope type = 'gauss'
-# index    exc. time (a.u.)   el. state    dE (a.u.)     |tdm| (a.u.)
-     3      50.98896272            1      0.34574925      0.75320000
-     3     -26.10280808            1      0.34574925      0.75320000
-     4     -68.05804034            2      0.36679075      1.40300000
-     4     -50.42549647            2      0.36679075      1.40300000
-     4     -14.77969117            2      0.36679075      1.40300000
-     5     -32.66188108            2      0.36973886      1.37700000
-     8     116.78592486            2      0.36644659      1.42500000
-     9     -47.47085207            2      0.36662982      1.27700000
-     9     -39.94428629            2      0.36662982      1.27700000
-    10     -92.13785801            2      0.35529522      1.41100000
+# index        exc. time (a.u.)   el. state     dE (a.u.)       |tdm| (a.u.)
+       3        15.09731061            1       0.34574925       0.29635106
+       3        25.94554064            1       0.34574925       0.29635106
+       3        61.98106992            1       0.34574925       0.29635106
+       4         7.38522206            2       0.36679075       0.55201877
+       8       -14.27561557            2       0.36644659       0.56067480
+       9       155.72500917            2       0.36662982       0.50244331
+       9       -44.31379959            2       0.36662982       0.50244331
+      10        94.19109952            2       0.35529522       0.55516642
+      10        -9.13220842            2       0.35529522       0.55516642
+      10        31.75086044            2       0.35529522       0.55516642
 ```
-Inspecting this output file shows that the code generated 10 initial conditions accounting for the effect of the laser pulse, yet only 6 unique ground-state samples (pairs nuclear were used (indexes 3, 4, and 9 were selected more than once). The initial conditions are also spread over both excited states. The user should then run only 6 nonadiabatic simulations: initiating the position-momentum pair with index 3 in the first excited state and position-momentum pairs with indexes 4, 5, 8, 9, and 10 in the second excited state.
+Inspecting this output file shows that the code generated 10 initial conditions accounting for the effect of the laser pulse, yet only 5 unique ground-state samples (pairs of nuclear positions and momenta) were used: indexes 3, 9, and 10 were selected more than once. The initial conditions are also spread over both excited states. The user should then run only 5 nonadiabatic simulations: initiating the nuclear position-momentum pair with index 3 in the first excited state and the nuclear position-momentum pairs with indexes 4, 8, 9, and 10 in the second excited state.
 
 If the same command would be used with PDAW instead of PDA (`--method pdaw`), the output file would look like
 ```
-# Convolution: 'I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)'
+# Convolution: I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)
 # Parameters:  fwhm = 3.000 fs, t0 = 0.000 fs
 # index        weight S1        weight S2
        1      1.78475e-05      9.66345e-07
@@ -98,7 +98,7 @@ If the same command would be used with PDAW instead of PDA (`--method pdaw`), th
        9      1.47188e-03      1.37747e-01
       10      1.33347e-06      3.55670e-01
 ```
-The code provides the pulse intensity and weights necessary for the convolution described in Eq. (14) in the [article](https://arxiv.org/abs/2408.17359). Note that the intensity should be normalized before used in convolution. If only a restricted amount of trajectories can be calculated, the user should choose the indexes and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in S$_1$ and indexes 3, 4, 5, 8, 9, and 10 starting in S$_2$.
+The code provides the pulse intensity and weights necessary for the convolution described in Eq. (14) in the [article](https://arxiv.org/abs/2408.17359). Note that the intensity should be normalized before used in convolution. If only a restricted amount of trajectories can be calculated, the user should choose the indexes and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in $S_1$ and indexes 3, 4, 5, 8, 9, and 10 starting in $S_2$.
 
 If the user selects option `--plot`, the code will produce a series of plots analyzing the provided data and calculated results, e.g. the absorption spectrum calculated with the nuclear ensemble method, the pulse spectrum or the Wigner pulse transform.
 
