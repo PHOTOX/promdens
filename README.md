@@ -1,6 +1,7 @@
-# Promoted Density Approach code
+# PROMDENS: Promoted Density Approach code
 
-`promdens` is a Python code implementing Promoted Density Approach (PDA) and its version for windowing (PDAW) freely available to the scientific community under MIT license.
+`promdens` is a Python code implementing the Promoted Density Approach (PDA) and its version for windowing (PDAW) freely available to the scientific community under MIT license.
+Derivation of PDA and PDAW and its benchmark against quantum dynamics can be found at [ArXiV](https://arxiv.org/abs/2408.17359) or soon at JPCL.
 
 ### Installation
 The code is published on PyPI and can be installed via pip
@@ -9,16 +10,35 @@ The code is published on PyPI and can be installed via pip
 pip install promdens
 ```
 
-The minimum supported Python version is 3.7. The code dependens on numpy and matplotlib libraries that are automatically installed by pip.
-
-After installation, the code is available as via the `promdens` command. To print help, run:
+After installation, the code is available as a script via the `promdens` command. To print help, run:
 
 ```console
 promdens --help
 ```
 
+The minimum supported Python version is 3.7.
+The code depends on `numpy` and `matplotlib` libraries that are automatically installed by pip.
+However, since pip by default installs packages into a global Python environment,
+it can break previously installed packages e.g. by installing an incompatible version of numpy.
+
+Therefore, we recommend using tools like [pipx](https://pipx.pypa.io/stable/) or [uv](https://docs.astral.sh/uv) which install the dependencies into an isolated Python environment but still make the `promdens` command globally available.
+See the example for pipx
+
+```console
+pip install pipx
+pipx install promdens
+```
+
+and uv 
+
+```console
+pip install uv
+uv tool install promdens
+```
+
+
 ### Usage
-The code requires information about the method to use (that is, PDA or PDAW), the number of excited states to consider, 
+The code requires information about the method (PDA or PDAW), the number of excited states to consider, 
 the number of initials conditions to be generated, and the characteristics of the laser pulse, such as the envelope type 
 (Gaussian, Lorentzian, sech, etc.), the pulse frequency, the linear chirp parameter, and the full width at half maximum parameter. 
 The code can be launched from a terminal with a series of flags as follows
@@ -28,7 +48,7 @@ promdens --method pda --energy_units a.u. --tdm_units debye --nstates 2 --fwhm 3
 ```
 
 The input file should contain information about the excitation energies and magnitudes of the transition dipole moments 
-for each pair of sampled nuclear positions and momenta (label by an index number).
+for each pair of sampled nuclear positions and momenta (labelled by an index number).
 In the following, we provide an example of the input file for the first two excited states of protonated formaldimine:
 ```
 #index    dE12 (a.u.)   mu_12 (Debye)   dE13 (a.u.)   mu_13 (Debye)
@@ -60,7 +80,7 @@ Using this input file and running the command line above, the user receives the 
      9     -39.94428629            2      0.36662982      1.27700000
     10     -92.13785801            2      0.35529522      1.41100000
 ```
-Inspecting this output file shows that the code generated 10 initial conditions accounting for the effect of the laser pulse, yet only 6 unique ground-state samples (pairs nuclear  were used (indexes 3, 4, and 9 were selected more than once). The initial conditions are also spread over both excited states. The user should then run only 6 nonadiabatic simulations: initiating the position-momentum pair with index 3 in the first excited state and position-momentum pairs with indexes 4, 5, 8, 9, and 10 in the second excited state.
+Inspecting this output file shows that the code generated 10 initial conditions accounting for the effect of the laser pulse, yet only 6 unique ground-state samples (pairs nuclear were used (indexes 3, 4, and 9 were selected more than once). The initial conditions are also spread over both excited states. The user should then run only 6 nonadiabatic simulations: initiating the position-momentum pair with index 3 in the first excited state and position-momentum pairs with indexes 4, 5, 8, 9, and 10 in the second excited state.
 
 If the same command would be used with PDAW instead of PDA (`--method pdaw`), the output file would look like
 ```
@@ -78,7 +98,7 @@ If the same command would be used with PDAW instead of PDA (`--method pdaw`), th
        9      1.47188e-03      1.37747e-01
       10      1.33347e-06      3.55670e-01
 ```
-The code provides the pulse intensity and weights necessary for the convolution described in Eq. (14) in the article. Note that the intensity should be normalized before used in convolution. If only a restricted amount of trajectories can be calculated, the user should choose the indexes and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in S$_1$ and indexes 3, 4, 5, 8, 9, and 10 starting in S$_2$.
+The code provides the pulse intensity and weights necessary for the convolution described in Eq. (14) in the [article](https://arxiv.org/abs/2408.17359). Note that the intensity should be normalized before used in convolution. If only a restricted amount of trajectories can be calculated, the user should choose the indexes and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in S$_1$ and indexes 3, 4, 5, 8, 9, and 10 starting in S$_2$.
 
 If the user selects option `--plot`, the code will produce a series of plots analyzing the provided data and calculated results, e.g. the absorption spectrum calculated with the nuclear ensemble method, the pulse spectrum or the Wigner pulse transform.
 
@@ -86,11 +106,19 @@ The work on a more detailed manual is currently in progress. If you have any que
 
 ### Analytic formulas for pulse envelope Wigner transform
 
-While `lorentz`, `sin2` and `sech` pulse envelope Wigner transforms are still calculated numerically by employing trapezoid rule for the integral, the `gauss` and `sin` envelope Wigner transforms are calculated analytically according following analytic formulas. We apply the following substitution in the formulas
+The code is based on the Wigner pulse transform which requires evaluating the Wigner integral
+
+$$\mathcal{W}_E(t^\prime,\omega)=\int _{-\infty}^{\infty} E\left(t^\prime+\frac{s}{2}\right) E^*\left(t^\prime-\frac{s}{2}\right) \mathrm{e}^{-i\omega s} \mathrm{d} s$$
+
+To simplify the integral evaluation, we implemented simpler Wigner pulse envelope transform (see the [article](https://arxiv.org/abs/2408.17359) for more details)
+
+$$\mathcal{W}_\varepsilon(t,\omega) = \int _{-\infty}^{\infty}  \varepsilon\left(t+\frac{s}{2}\right) \varepsilon\left(t-\frac{s}{2}\right) \mathrm{e}^{-i\omega s}  \mathrm{d} s$$
+
+where $$\varepsilon$$ is the pulse envelope. While `lorentz`, `sin2` and `sech` the $$\mathcal{W}_\varepsilon$$ is still calculated numerically by employing the trapezoid rule for the integral, the `gauss` and `sin` envelope Wigner transforms are calculated analytically according to analytic formulas. In the following analytic formulas, we apply a substitution 
 $$\Omega = \Delta E/\hbar - \omega$$.
 
 #### Gaussian envelope
-$$\tau\sqrt{\frac{\pi}{\ln2}}16^{-\frac{(t^\prime - t_0)^2}{\tau^2}}\exp\left(-\frac{\tau^2\omega^2}{\ln16}\right)$$
+$$\mathcal{W}_\varepsilon(t^\prime,\omega)=\tau\sqrt{\frac{\pi}{\ln2}}16^{-\frac{(t^\prime - t_0)^2}{\tau^2}}\exp\left(-\frac{\tau^2\omega^2}{\ln16}\right)$$
 
 #### Sinusoidal envelope
 * $\pi\frac{-2\tau\Omega\cos(2(t^\prime - t_0 + \tau)\Omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(t^\prime - t_0 + \tau)\Omega))}{\Omega(\pi^2 - 4\tau^2\Omega^2)}$            if $t^\prime < t_0$ and $t^\prime > t_0 - \tau $
