@@ -26,20 +26,20 @@ ENVELOPE_TYPES = ['gauss', 'lorentz', 'sech', 'sin', 'sin2']
 NEG_PROB_HANDLING = ['error', 'ignore', 'abs']
 FILE_TYPES = ['file']
 
-DESC = "Promoted density approach for initial conditions"
+DESC = "PROMDENS: Promoted Density Approach code"
 
 
 ### functions and classes ###
 def print_header():
-    print("\n##########################################################\n"
-          f"###  {DESC}  ###\n"
-          "###                   * * * * *                        ###\n"
-          "###       version 1.0         Jiri Janos 2024          ###\n"
-          "##########################################################\n")
+    print("\n#############################################################\n"
+          f"###        {DESC}       ###\n"
+          "###                       * * * * *                       ###\n"
+          "###     version 1.0.0         |       Jiri Janos 2024     ###\n"
+          "#############################################################\n")
 
 
 def print_footer():
-    print('\nPromoted density approached calculation finished.'
+    print('\nPromoted Density Approach calculation finished.'
           '\n - "May the laser pulses be with you."\n')
     print("       %.                                \n"
           "        %.                    #%%%%%%%%  \n"
