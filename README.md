@@ -51,7 +51,7 @@ The input file should contain information about the excitation energies and magn
 for each pair of sampled nuclear positions and momenta (labelled by an index number).
 In the following, we provide an example of the input file for the first two excited states of protonated formaldimine:
 ```
-#index    dE12 (a.u.)   mu_12 (Debye)   dE13 (a.u.)   mu_13 (Debye)
+#index    dE12 (a.u.)  |mu_12| (Debye)  dE13 (a.u.)  |mu_13| (Debye)
 1         0.32479719       0.1251       0.40293672       1.351
 2         0.32070472       0.2434       0.40915241       1.289
 3         0.34574925       0.7532       0.38595754       1.209
