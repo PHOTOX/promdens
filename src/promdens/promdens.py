@@ -440,7 +440,8 @@ class InitialConditions:
         else:
             preselected = np.zeros(shape=(self.nstates, self.nsamples), dtype=bool)
 
-        # setting up random generator with a seed (None means random seed form OS taken)
+        # setting up random generator with a seed (None means random seed form OS taken),
+        # see https://blog.scientific-python.org/numpy/numpy-rng/
         rng = np.random.default_rng(seed=seed)
 
         i, nattempts, start = 0, 0, timer()  # i: loop index; nattempts: to calculate efficiency of the sampling; start: time t0
