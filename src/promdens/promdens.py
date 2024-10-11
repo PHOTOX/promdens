@@ -874,18 +874,22 @@ def parse_cmd_args():
     return parser.parse_args()
 
 
+def print_input_params(params):
+    print("* Input parameters:")
+    for key, value in vars(params).items():
+        add = ''
+        if key == 'nsamples' and value == 0:
+            add = '(All input data will be used)'
+        if params.method == 'pdaw' and key in ('npsamples', 'random_seed', 'preselect', 'neg_handling'):
+            continue
+        print(f"  - {key:20s}: {value}   {add}")
+
+
 def main():
     # Parse the command line parameters and print them
     config = parse_cmd_args()
     print_header()
-    print("* Input parameters:")
-    for key, value in vars(config).items():
-        add = ''
-        if key == 'nsamples' and value == 0:
-            add = '(All input data will be used)'
-        if config.method == 'pdaw' and key in ('npsamples', 'random_seed', 'preselect', 'neg_handling'):
-            continue
-        print(f"  - {key:20s}: {value}   {add}")
+    print_input_params(config)
 
     if not Path(config.input_file).is_file():
         print(f"ERROR: file '{config.input_file}' not found!")
