@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.7", "3.12"]
+        python: ["3.7", "3.13"]
 
     runs-on: ubuntu-latest
 
@@ -30,7 +30,7 @@ jobs:
     - name: Set up uv
       uses: astral-sh/setup-uv@v1
       with:
-          version: "0.4.15"
+          version: "0.4.20"
 
     - name: Test script with `uv run`
       run: |
