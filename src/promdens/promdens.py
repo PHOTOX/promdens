@@ -626,8 +626,8 @@ def plot_spectrum(ics: InitialConditions) -> None:
     # Decompose spectrum into individual adiabatic states
     if ics.nstates > 1:
         for s in range(ics.nstates):
-            state_cross_section = ics.spectrum[s+1]
-            label = r"S$_\mathregular{%d}$"%(s+1)
+            state_cross_section = ics.spectrum[s + 1]
+            label = r"S$_\mathregular{%d}$"%(s + 1)
             axs[2].plot(energy_ev, state_cross_section, color=colors[s], linestyle='--', label=label)
             axs[2].fill_between(energy_ev, 0, state_cross_section, color=colors[s], alpha=0.2)
 
@@ -748,7 +748,7 @@ def plot_pda(ics: InitialConditions) -> None:
         cmap=plt.cm.viridis, density=True, )
     if ics.pulse.lchirp != 0:
         axs.plot((ics.pulse.omega + 2*ics.pulse.lchirp*ics.field_t)/ics.evtoau, t_fs, color="white", linestyle="--",
-                 label=r"$\omega(t)$")
+            label=r"$\omega(t)$")
         axs.legend(frameon=True, framealpha=0.4, labelspacing=0.1)
 
     # Plot pulse intensity
@@ -768,7 +768,7 @@ def plot_pda(ics: InitialConditions) -> None:
     # Plot pulse spectral intensity
     pulse_omega_au = ics.field_ft_omega/ics.evtoau
     spec_intensity = ics.field_ft**2
-    ax_histx.plot(pulse_omega_au, spec_intensity , color=colors[0], label='Pulse spec. intensity')
+    ax_histx.plot(pulse_omega_au, spec_intensity, color=colors[0], label='Pulse spec. intensity')
     ax_histx.fill_between(pulse_omega_au, ics.field_ft*0, spec_intensity, color=colors[0], alpha=0.2)
     ax_histx.set_ylim(0, 1.2)
     ax_histx.legend(frameon=True, labelspacing=0.1, edgecolor='white')
