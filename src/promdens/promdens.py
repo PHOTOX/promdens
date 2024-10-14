@@ -671,13 +671,13 @@ def plot_field(ics: InitialConditions) -> None:
 
     # Plot normalized absorption spectrum
     energy_ev = ics.spectrum[0]/ics.evtoau
-    total_intensity = ics.spectrum[-1]/np.max(ics.spectrum[-1])
+    normalized_cross_section = ics.spectrum[-1]/np.max(ics.spectrum[-1])
     for state in range(ics.nstates):
         state_intensity = ics.spectrum[state + 1]/np.max(ics.spectrum[-1])
         axs[1].plot(energy_ev, state_intensity, color=colors[-1], linestyle='--', linewidth=1, alpha=0.5)
 
-    axs[1].plot(energy_ev, total_intensity, color=colors[1], label='Absorption spectrum')
-    axs[1].fill_between(energy_ev, total_intensity*0, total_intensity, color=colors[1], alpha=0.2)
+    axs[1].plot(energy_ev, normalized_cross_section, color=colors[1], label='Absorption spectrum')
+    axs[1].fill_between(energy_ev, normalized_cross_section*0, normalized_cross_section, color=colors[1], alpha=0.2)
 
     # Plot pulse spectrum
     axs[1].plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
