@@ -383,11 +383,11 @@ class InitialConditions:
         self.field_ft_omega = 2*np.pi*np.fft.rfftfreq(len(t_ft), dt)
 
         if self.is_maxwell_fulfilled():
+            print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
+        else:
             print("  - WARNING: Pulse is too short and integral of E(t) is not equal to 0 - Maxwell's equations are "
                   "not fulfilled. This means\n    that the representation of the pulse as envelope times cos(wt) is not physical."
                   " See the original reference for more details.")
-        else:
-            print("  - Integral of E(t) from -infinity to infinity is equal to 0 - pulse is physically realizable.")
 
     def is_maxwell_fulfilled(self):
         """Check if the pulse fulfills Maxwell's equations
@@ -705,8 +705,11 @@ def plot_field(ics: InitialConditions) -> None:
         axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
         axs.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
         axs.axvline(0, color='black', lw=0.5)
+        axs.axvline(ics.pulse.omega/ics.evtoau, color='black', lw=0.5)
+        omega0_ev = ics.pulse.omega/ics.evtoau
+        axs.text(1.02*omega0_ev, 1.1, r"$\omega_0=$" + f"{omega0_ev:.3f} eV", va='center')
         axs.scatter(ics.field_ft_omega[0]/ics.evtoau, ics.field_ft[0], color='black')
-        axs.set_xlim(-0.1, ics.field_ft_omega[np.argmax(ics.field_ft)*2]/ics.evtoau)
+        axs.set_xlim(-0.1*omega0_ev, ics.field_ft_omega[np.argmax(ics.field_ft)]/ics.evtoau + 2*omega0_ev)
         axs.set_ylim(0, 1.2)
         axs.set_xlabel(r"$E$ (eV)")
         axs.set_ylabel("Pulse spectrum")
@@ -802,7 +805,7 @@ def plot_pdaw(ics: InitialConditions) -> None:
     axs.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]),
         color=colors[-1], alpha=0.2)
 
-    maxw = np.max(ics.weights)
+    maxw = np.max(ics.weights)*1.1
     if ics.nstates > 1:
         for state in range(ics.nstates):
             # plotting spectrum
@@ -814,6 +817,16 @@ def plot_pdaw(ics: InitialConditions) -> None:
             axs.scatter(ics.de[state, :]/ics.evtoau, ics.weights[state, :]/maxw, color=colors[state], s=5)
             for index in range(ics.nsamples):
                 axs.plot([ics.de[state, index]/ics.evtoau]*2, [0, ics.weights[state, index]/maxw], color=colors[state])
+    else:
+        # plotting spectrum
+        axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[0 + 1]/np.max(ics.spectrum[-1]), color=colors[0],
+            linestyle='--')
+        axs.fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[0 + 1]/np.max(ics.spectrum[-1]), color=colors[0],
+            alpha=0.2)
+        # weights of initial conditions plotted as sticks with points
+        axs.scatter(ics.de[0, :]/ics.evtoau, ics.weights[0, :]/maxw, color=colors[0], s=5)
+        for index in range(ics.nsamples):
+            axs.plot([ics.de[0, index]/ics.evtoau]*2, [0, ics.weights[0, index]/maxw], color=colors[0])
 
     axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color='black', alpha=0.5, label='Pulse intensity spectrum')
     axs.set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
