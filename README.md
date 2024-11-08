@@ -1,9 +1,9 @@
 # PROMDENS: Promoted Density Approach code
 
 **PROMDENS** is a Python code implementing the Promoted Density Approach (PDA) and its version for windowing (PDAW), freely available to the scientific community under the MIT license.
-PDA and PDAW are techniques for implicit inclusion of laser pulses in trajectory based nonadiabatic dynamics, such as trajectory surface hopping or _ab initio_ multiple spawning.
-PDA generates initial conditions (positions, momenta and excitation times) for the excited-state dynamics, while PDAW provides weights and convolution function for the trajectories created using the vertical excitation approach.
-Both methods take as an input ground-state positions and momenta with corresponding excitation energies and transition dipole moments (quantities readily available from absorption spectra calculation with the Nuclear Ensemble Approach). 
+PDA and PDAW are techniques for implicit inclusion of laser pulses in trajectory-based nonadiabatic dynamics, such as trajectory surface hopping or _ab initio_ multiple spawning.
+PDA generates initial conditions (positions, momenta and excitation times) for the excited-state dynamics, while PDAW provides weights and convolution functions for the trajectories created using the vertical excitation approach.
+Both methods take as input ground-state positions and momenta with corresponding excitation energies and transition dipole moments (quantities readily available from absorption spectra calculation with the Nuclear Ensemble Approach). 
 Description of PDA and PDAW, their derivation and benchmark against quantum dynamics can be found in our recent paper in [JPCL](https://doi.org/10.1021/acs.jpclett.4c02549).
 
 ## Installation
@@ -40,10 +40,10 @@ uv tool install promdens
 ```
 ## Brief outline of the code 
 The code makes several steps and analysis procedures before it calculates the promoted density quantities.
-The **PROMDENS** workflow is here briefly summarized:
+The **PROMDENS** workflow is briefly summarized as:
 1) The absorption spectrum is calculated using the Nuclear Ensemble Approach and decomposed into different excited states. 
 2) The laser field and its characteristics such as spectral intensity are calculated. 
-3) The code checks if the pulse fulfills Maxwell equations, i.e., is not too short.
+3) The code checks if the pulse fulfils Maxwell equations, i.e., is not too short.
 4) The excitation times for PDA or weights for PDAW are calculated.
 
 All the steps are commented in the verbose code output.
@@ -73,7 +73,7 @@ In the following, we provide an example of the input file for the first two exci
 ```
 The first column always considers the index (label) of the given position-momentum pair. 
 This index is used in the output to specify the selected position-momentum pairs.
-Follow two columns for each excited state: the first column is always the excitation energy, the second column are the magnitudes of the transition dipole moments.
+Follow two columns for each excited state: the first column contains the excitation energy while the second column always bears the magnitudes of the transition dipole moments.
 We will use this input file in the following examples and refer to it as to `input_file.dat`.
 
 ## Usage
@@ -81,8 +81,10 @@ The code requires information about the method (PDA or PDAW, `--method`), the nu
 the number of initials conditions to be generated (`--npsamples`), and the characteristics of the laser pulse, such as the envelope type 
 (Gaussian, Lorentzian, sech, etc., `--envelope_type`), the pulse frequency (`--omega`), the linear chirp parameter (`--linear_chirp`), and the full width at half maximum parameter (`--fwhm`). 
 The units of excitation energies (`--energy_unit`) and transition dipole moments can be specified (`--tdm_unit debye`).
-An optional flag is `--plot`, which produces and saves plot of the absorption spectrum, laser pulse characteristics and the final analysis of the results. 
-The code can be launched from a terminal with a series of flags as follows
+An optional flag is `--plot`, which produces and saves plots of the absorption spectrum, laser pulse characteristics and the final analysis of the results. 
+
+### PDA
+The PDA method can be launched from a terminal with a series of flags as follows
 
 ```console
 promdens --method pda --energy_unit a.u. --tdm_unit debye --nstates 2 --fwhm 3 --omega 0.355 --npsamples 10 --envelope_type gauss input_file.dat
@@ -107,9 +109,13 @@ Using this input file `input_file.dat` shown above produces the following output
 Inspecting this output file shows that the code generated 10 initial conditions accounting for the effect of the laser pulse, yet only 5 unique ground-state samples (pairs of nuclear positions and momenta) were used: indexes 3, 9, and 10 were selected more than once. 
 The initial conditions are also spread over both excited states. 
 The user should then run only 5 nonadiabatic simulations: initiating the nuclear position-momentum pair with index 3 in the first excited state and the nuclear position-momentum pairs with indexes 4, 8, 9, and 10 in the second excited state.
-The trajectories 3, 9 and 10 are then accounted in the trajectory ensemble multiple times, but always with different excitation time.
-This multiple accounting of a same trajectory mimics the temporal spread of the laser pulse.
-A larger number of samples is recommended to get smooth curves fully account for the pulse duration. 
+The trajectories 3, 9 and 10 are then accounted for in the trajectory ensemble multiple times, but always with different excitation times.
+This multiple accounting of the same trajectory mimics the temporal spread of the laser pulse.
+A larger number of samples is recommended to get smooth curves fully accounting for the pulse duration. 
+
+Let us now briefly comment on the generation of initial conditions with PDA and the processing of the data. The code selects `npsamples` initial conditions, yet some of them will be generally taken multiple times. Thus, the number of samples used for nonadiabatic dynamics will be smaller than `npsamples`. However, the restriction usually lies in the maximum number of trajectories calculated, i.e., the number of unique indexes (position-momentum pairs) selected. Imagine we want to run 100 trajectories. We run the code with `--npsamples 1000` generating 1000 initial conditions, which will contain for example 250 unique indexes. Since we cannot run 250 trajectories, we need to decrease `npsamples` and optimize the value until we obtain the required 100 unique position-momentum pairs. 
+
+### PDAW
 
 If the same command would be used with PDAW instead of PDA (`--method pdaw`), the output file `pdaw.dat` would look like
 ```
@@ -131,11 +137,35 @@ The code provides the pulse intensity $I$ and weights $w_i$ necessary for calcul
 
 $$\mathcal{O}(t) = \int_{-\infty}^{\infty} \bar{I}(t-t^{\prime}) \frac{\sum_i w_i \mathcal{O}_i(t^\prime)}{\sum_i w_i} \mathrm{d} t^{\prime} , $$
 
-where $\bar{I}$ is normalized pulse intensity and $\mathcal{O}_i$ is the observable calculated for trajectory $i$. Note that the intensity should be normalized before used in convolution. If only a restricted amount of trajectories can be calculated, the user should choose the indexes and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in $S_1$ and indexes 3, 4, 5, 8, 9, and 10 starting in $S_2$.
+where $\bar{I}$ is normalized pulse intensity and $\mathcal{O}_i$ is the observable calculated for trajectory $i$. Note that the intensity should be normalized before being used in convolution. If only a restricted amount of trajectories can be calculated, the user should choose the indexes and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in $S_1$ and indexes 3, 4, 5, 8, 9, and 10 starting in $S_2$.
 
 If the user selects option `--plot`, the code will produce a series of plots analyzing the provided data and calculated results, e.g. the absorption spectrum calculated with the nuclear ensemble method, the pulse spectrum or the Wigner pulse transform.
 
-The work on a more detailed manual is currently in progress. If you have any questions, do not hesitate to contact the developers.
+### Laser field representation
+
+The laser field in the code is represented as an envelope multiplied by $\cos\left[(\omega+\gamma t) t\right]$ where $\omega$ is the central pulse frequency (`omega`) and $\gamma$ is the linear chirp parameter `linear_chirp`.
+The code allow to select several pulse envelopes which are defined through $t_0$ (`t0`) and the full width at half maximum (FWHM) parameter $\tau$ (`fwhm`). Note that the FWHM parameter is defined for the intensity of the pulse, i.e., the square of the pulse envelope.
+
+##### Guassian envelope (`gauss`):
+$$\exp\left[-2\ln2\left( \frac{t - t_0}{\tau} \right)^2\right]$$
+
+##### Lorentzian envelope (`lorentz`): 
+$$\left[1 + \frac{4}{1 + \sqrt{2}}\left(\frac{t - t_0}{\tau}\right)^2\right]^{-1}$$
+
+##### Hyperbolic secant envelope (`sech`):
+$$\mathrm{sech}\left[2\ln(1 + \sqrt{2})\frac{t - t_0}{\tau}\right]$$
+
+##### Sinus envelope (`sin`):
+$$\sin\left[\pi\frac{t - t_0 + \tau}{2\tau}\right] \quad \text{ if } t \in [t_0 - \tau, t_0 + \tau]$$ 
+$$0 \quad \text{elsewhere}$$
+
+##### Sinus squared envelope (`sin2`):
+$$\sin^2\left[\pi\frac{t - t_0 + T}{2T}\right] \quad \text{ if } t \in [t_0 - T, t_0 + T]$$
+$$0 \quad \text{elsewhere}$$
+
+where 
+
+$$T = \frac{1}{2-4/\pi\arcsin(2^{-1/4})} \tau = 1.373412575\tau$$
 
 ### Notes on some keywords
 
@@ -155,6 +185,8 @@ If the users would find a use of any specific input file type which is not curre
 ## Technical details
 
 The following section contains information about some technical aspects of the implementation.
+
+**HERE: numerical calculations of some envelopes**
 
 ### Analytic formulas for pulse envelope Wigner transform
 
