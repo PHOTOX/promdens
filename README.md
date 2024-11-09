@@ -143,7 +143,7 @@ If the user selects option `--plot`, the code will produce a series of plots ana
 
 ### Laser field representation
 
-The laser field in the code is represented as an envelope multiplied by $\cos\left[(\omega+\gamma t) t\right]$ where $\omega$ is the central pulse frequency (`omega`) and $\gamma$ is the linear chirp parameter `linear_chirp`.
+The laser field in the code is represented as an envelope multiplied by $\cos\left[(\omega_0+\beta t) t\right]$ where $\omega_0$ is the central pulse frequency (`omega`) and $\gamma$ is the linear chirp parameter `linear_chirp`.
 The code allow to select several pulse envelopes which are defined through $t_0$ (`t0`) and the full width at half maximum (FWHM) parameter $\tau$ (`fwhm`). Note that the FWHM parameter is defined for the intensity of the pulse, i.e., the square of the pulse envelope.
 
 ##### Guassian envelope (`gauss`):
@@ -155,13 +155,13 @@ $$\left[1 + \frac{4}{1 + \sqrt{2}}\left(\frac{t - t_0}{\tau}\right)^2\right]^{-1
 ##### Hyperbolic secant envelope (`sech`):
 $$\mathrm{sech}\left[2\ln(1 + \sqrt{2})\frac{t - t_0}{\tau}\right]$$
 
-##### Sinus envelope (`sin`):
-$$\sin\left[\pi\frac{t - t_0 + \tau}{2\tau}\right] \quad \text{ if } t \in [t_0 - \tau, t_0 + \tau]$$ 
+##### Sinusoidal envelope (`sin`):
+$$\sin\left[\pi\frac{t - t_0 + \tau}{2\tau}\right] \quad \quad \text{ if } \quad t \in [t_0 - \tau, t_0 + \tau]$$ 
 $$0 \quad \text{elsewhere}$$
 
-##### Sinus squared envelope (`sin2`):
-$$\sin^2\left[\pi\frac{t - t_0 + T}{2T}\right] \quad \text{ if } t \in [t_0 - T, t_0 + T]$$
-$$0 \quad \text{elsewhere}$$
+##### Sinusoidal squared envelope (`sin2`):
+$$\sin^2\left[\pi\frac{t - t_0 + T}{2T}\right] \quad \quad \text{ if } \quad t \in [t_0 - T, t_0 + T]$$
+$$0 \quad \quad \text{elsewhere}$$
 
 where 
 
@@ -173,38 +173,58 @@ While most of the keywords are explained in the code description available by `p
 Here, we summarize these keywords and provide recommendations for their usage.
 * `--preselect`: This keyword preselects provided samples using the pulse spectral intensity and discards samples that far from resonance. 
 We recommend this keyword in case the pulse spectrum targets only a part of the absorption spectrum, or when a lot of states are calculated.
-It saves a significant amount of computational time in such cases as it prevents the code to test samples with negligible excitation probability.
+It saves a significant amount of computational time in such cases as it prevents the code from testing samples with negligible excitation probability.
 However, final production calculations should be always done without preselection
-* `--random_seed`: The PDA algorithm generates random numbers and compares them with the excitation probability in order to generate excitation times, which makes it stochastic (note that PDAW is fully deterministic and is unaffacted by this choice).
-We recommend to use the default option and generate a new random seed for each calculation. 
+* `--random_seed`: The PDA algorithm generates random numbers and compares them with the excitation probability in order to generate excitation times, which makes it stochastic (note that PDAW is fully deterministic and unaffected by this choice).
+We recommend using the default option and generating a new random seed for each calculation. 
 However, if reproducibility is required (as in our test suite), the random seed can be set.
 * `--file_type`: Currently the only input file type available is described in section **Input**, no flexibility is available. 
-In the future, we intend to implement other input file types based on standard output files form widely used code such as SHARC or NEWTON-X. 
+In the future, we intend to implement other input file types based on standard output files from widely used code such as SHARC or NEWTON-X. 
 If the users would find a use of any specific input file type which is not currently implemented, feel free to contact the developers for implementation.
 
 ## Technical details
 
-The following section contains information about some technical aspects of the implementation.
+The following section contains information about some technical aspects of the **PROMDENS** implementation.
 
-**HERE: numerical calculations of some envelopes**
+### Evaluation of the Wigner pulse transform
 
-### Analytic formulas for pulse envelope Wigner transform
-
-The code is based on the Wigner pulse transform which requires evaluating the Wigner integral
+The PDA and PDAW are based on the Wigner pulse transform which requires evaluating the Wigner integral
 
 $$\mathcal{W}_E(t^\prime,\omega)=\int _{-\infty}^{\infty} E\left(t^\prime+\frac{s}{2}\right) E^*\left(t^\prime-\frac{s}{2}\right) \mathrm{e}^{-i\omega s} \mathrm{d} s$$
 
-To simplify the integral evaluation, we implemented simpler Wigner pulse envelope transform (see the [article](https://arxiv.org/abs/2408.17359) for more details)
+where the frequency is given by the excitation energy ($\omega=\Delta E/\hbar$) and $t^\prime$ is the excitation time. To simplify the integral evaluation, we implemented a simpler Wigner pulse envelope transform (see the SI of our [article](https://doi.org/10.1021/acs.jpclett.4c02549) for more details):
 
-$$\mathcal{W}_\varepsilon(t,\omega) = \int _{-\infty}^{\infty}  \varepsilon\left(t+\frac{s}{2}\right) \varepsilon\left(t-\frac{s}{2}\right) \mathrm{e}^{-i\omega s}  \mathrm{d} s$$
+$$\mathcal{W}_\varepsilon(t^\prime,\omega) = \int _{-\infty}^{\infty}  \varepsilon\left(t^\prime+\frac{s}{2}\right) \varepsilon\left(t^\prime-\frac{s}{2}\right) \mathrm{e}^{-i\omega s}  \mathrm{d}s$$
 
-where $\varepsilon$ is the pulse envelope. While `lorentz`, `sin2` and `sech` the $\mathcal{W}_\varepsilon$ is still calculated numerically by employing the trapezoid rule for the integral, the `gauss` and `sin` envelope Wigner transforms are calculated analytically according to analytic formulas. In the following analytic formulas, we apply a substitution 
-$\Omega = \Delta E/\hbar - \omega$.
+where $\varepsilon$ is the pulse envelope. The relation between the two Wigner transforms reads:
 
-#### Gaussian envelope
+$$\mathcal{W}_ {E}(t^\prime,\omega) = \mathcal{W}_\varepsilon(t^\prime,\omega-(\omega_0+2\beta t^\prime))$$
+
+where $\omega_0+2\beta t$ is the immediate frequency for pulse described as $E(t) = E_0 \varepsilon(t)\cos[(\omega_0+\beta t)t]$.
+
+While the `gauss` and `sin` envelope Wigner transforms are calculated analytically, `lorentz`, `sin2` and `sech` envelopes are calculated numerically with the trapezoid rule since we so far have not derived analytic formulas.
+
+#### Analytic formulas for the Wigner pulse envelope transform
+
+The analytic formulas for the Wigner pulse envelope transform, $\mathcal{W}_\varepsilon$, are available only for the Gaussian and Sinusoidal envelopes:
+
+##### Gaussian envelope (`gauss`):
 $$\mathcal{W}_\varepsilon(t^\prime,\omega)=\tau\sqrt{\frac{\pi}{\ln2}}16^{-\frac{(t^\prime - t_0)^2}{\tau^2}}\exp\left(-\frac{\tau^2\omega^2}{\ln16}\right)$$
 
-#### Sinusoidal envelope
-* $\pi\frac{-2\tau\Omega\cos(2(t^\prime - t_0 + \tau)\Omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(t^\prime - t_0 + \tau)\Omega))}{\Omega(\pi^2 - 4\tau^2\Omega^2)}$            if $t^\prime < t_0$ and $t^\prime > t_0 - \tau $
-* $\pi\frac{2\tau\Omega\cos(2(-t^\prime + t_0 + \tau)\Omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(-t^\prime + t_0 + \tau)\Omega))}{\Omega(\pi^2 - 4\tau^2\Omega^2)}$            if $t^\prime \ge t_0$ and $t^\prime < t_0 - \tau $
-* $0$            elsewhere
+##### Sinusoidal envelope (`sin`):
+$\mathcal{W}_\varepsilon(t^\prime,\omega)=$
+
+$$\pi\frac{-2\tau\omega\cos(2(t^\prime - t_0 + \tau)\omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(t^\prime - t_0 + \tau)\omega))}{\omega(\pi^2 - 4\tau^2\omega^2)} \quad \quad \text{if} \quad t^\prime < t_0 \quad \text{and} \quad t^\prime > t_0 - \tau $$
+
+$$\pi\frac{2\tau\omega\cos(2(-t^\prime + t_0 + \tau)\omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(-t^\prime + t_0 + \tau)\omega))}{\omega(\pi^2 - 4\tau^2\omega^2)} \quad \quad \text{if} \quad t^\prime \ge t_0 \quad \text{and} \quad t^\prime < t_0 - \tau $$
+
+$$0 \quad \quad \text{elsewhere}$$
+
+#### Numerical evaluation of the Wigner pulse envelope transform
+
+For `lorentz`, `sin2` and `sech`, the analytic formulas are currently not available. Instead, we solve the integral numerically. Using the symmetry of the integrand, it can be shown that 
+
+$$\mathcal{W}_ \varepsilon(t^\prime,\omega) = 2\int_{0}^{\infty} \varepsilon\left(t^\prime+\frac{s}{2}\right) \varepsilon\left(t^\prime-\frac{s}{2}\right) \cos(\omega s)\mathrm{d} s$$
+
+which simplifies the integral evaluation since the lower integral limit is 0 instead of $-\infty$ and also allows to use only real numbers instead of complex numbers due to the complex exponential. The speed up si rougly four times. In practice, the integral is evaluated using the trapezoidal rule with adaptive upper limit and integration step set according to the frequency and envelope.
+
