@@ -143,29 +143,39 @@ If the user selects option `--plot`, the code will produce a series of plots ana
 
 ### Laser field representation
 
-The laser field in the code is represented as an envelope multiplied by $\cos\left[(\omega_0+\beta t) t\right]$ where $\omega_0$ is the central pulse frequency (`omega`) and $\gamma$ is the linear chirp parameter `linear_chirp`.
+The laser field in the code is represented as an envelope $\varepsilon(t)$ multiplied by $\cos\left[(\omega_0+\beta t) t\right]$ where $\omega_0$ is the central pulse frequency (`omega`) and $\gamma$ is the linear chirp parameter `linear_chirp`.
 The code allow to select several pulse envelopes which are defined through $t_0$ (`t0`) and the full width at half maximum (FWHM) parameter $\tau$ (`fwhm`). Note that the FWHM parameter is defined for the intensity of the pulse, i.e., the square of the pulse envelope.
 
 ##### Guassian envelope (`gauss`):
-$$\exp\left[-2\ln2\left( \frac{t - t_0}{\tau} \right)^2\right]$$
+$$\varepsilon(t)=\exp\left[-2\ln2\left( \frac{t - t_0}{\tau} \right)^2\right]$$
 
 ##### Lorentzian envelope (`lorentz`): 
-$$\left[1 + \frac{4}{1 + \sqrt{2}}\left(\frac{t - t_0}{\tau}\right)^2\right]^{-1}$$
+$$\varepsilon(t)=\left[1 + \frac{4}{1 + \sqrt{2}}\left(\frac{t - t_0}{\tau}\right)^2\right]^{-1}$$
 
 ##### Hyperbolic secant envelope (`sech`):
-$$\mathrm{sech}\left[2\ln(1 + \sqrt{2})\frac{t - t_0}{\tau}\right]$$
+$$\varepsilon(t)=\mathrm{sech}\left[2\ln(1 + \sqrt{2})\frac{t - t_0}{\tau}\right]$$
 
 ##### Sinusoidal envelope (`sin`):
-$$\sin\left[\pi\frac{t - t_0 + \tau}{2\tau}\right] \quad \quad \text{ if } \quad t \in [t_0 - \tau, t_0 + \tau]$$ 
+$$\varepsilon(t)=\sin\left[\pi\frac{t - t_0 + \tau}{2\tau}\right] \quad \quad \text{ if } \quad t \in [t_0 - \tau, t_0 + \tau]$$ 
 $$0 \quad \text{elsewhere}$$
 
 ##### Sinusoidal squared envelope (`sin2`):
-$$\sin^2\left[\pi\frac{t - t_0 + T}{2T}\right] \quad \quad \text{ if } \quad t \in [t_0 - T, t_0 + T]$$
+$$\varepsilon(t)=\sin^2\left[\pi\frac{t - t_0 + T}{2T}\right] \quad \quad \text{ if } \quad t \in [t_0 - T, t_0 + T]$$
 $$0 \quad \quad \text{elsewhere}$$
 
 where 
 
 $$T = \frac{1}{2-4/\pi\arcsin(2^{-1/4})} \tau = 1.373412575\tau$$
+
+#### Characteristics of the envelopes
+
+The following figure shows the envelope $\varepsilon(t)$, the pulse intensity $I(t)\propto\varepsilon^2(t)$, the pulse spectrum $|\varepsilon(\omega)|$ (Fourier transform of $\varepsilon(t)$) and the pulse spectral intensity $S(\omega)\propto\varepsilon^2(\omega)$.
+
+![implemented_envelopes.png](https://github.com/PHOTOX/promdens/blob/readme-improve/supplementary/envelopes_analysis/implemented_envelopes.png)
+
+The pulse envelope Wigner transforms for the presented pulses are presented in the next figure in standard and logarithmic scales. The red colour represents the negative regions of the Wigner transform. The only envelope free of negative parts is the Gaussian envelope. However, the negative regions in the remaining envelopes are located at edges of the distribution with negligible intensities. The code allows to treat the negative regions by either ignoring them (`--neg_handling ignore`) or taking the absolute values (`--neg_handling abs`). As default, the code issues error to inform the user that the negative probabilities must be handled.
+
+![envelope_wigner_transform.png](https://github.com/PHOTOX/promdens/blob/readme-improve/supplementary/envelopes_analysis/envelope_wigner_transform.png)
 
 ### Notes on some keywords
 
