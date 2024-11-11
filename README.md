@@ -50,7 +50,7 @@ All the steps are commented in the verbose code output.
 
 ## Input
 Both PDA and PDAW require as an input excitation energies and magnitudes of transition dipole moments for each position-momentum pair in the sample of initial (ground-state) density.
-These quantites are usually readily available form calculations of absorption spectra using the Nuclear Ensemble Approach.
+These quantites are usually readily available from calculations of absorption spectra using the Nuclear Ensemble Approach.
 The code does not need the positions and momenta itself but only their excitation energies and magnitudes of transition dipole moments, from which it selects the right position-momentum pairs and assigns them excitation times.
 
 ### Structure of the input file
@@ -73,7 +73,7 @@ In the following, we provide an example of the input file for the first two exci
 ```
 The first column always considers the index (label) of the given position-momentum pair. 
 This index is used in the output to specify the selected position-momentum pairs.
-Follow two columns for each excited state: the first column contains the excitation energy while the second column always bears the magnitudes of the transition dipole moments.
+The following columns come in pairs for each excited state: the first column contains the excitation energy while the second column bears the magnitudes of the transition dipole moment.
 We will use this input file in the following examples and refer to it as to `input_file.dat`.
 
 ## Usage
