@@ -171,11 +171,11 @@ $$T = \frac{1}{2-4/\pi\arcsin(2^{-1/4})} \tau = 1.373412575\tau$$
 
 The following figure shows the envelope $\varepsilon(t)$, the pulse intensity $I(t)\propto\varepsilon^2(t)$, the pulse spectrum $|\varepsilon(\omega)|$ (Fourier transform of $\varepsilon(t)$) and the pulse spectral intensity $S(\omega)\propto\varepsilon^2(\omega)$.
 
-![implemented_envelopes.png](https://github.com/PHOTOX/promdens/blob/readme-improve/supplementary/envelopes_analysis/implemented_envelopes.png)
+![implemented_envelopes.png](https://github.com/PHOTOX/promdens/blob/main/supplementary/envelopes_analysis/implemented_envelopes.png)
 
 The pulse envelope Wigner transforms for the presented pulses are presented in the next figure in standard and logarithmic scales. The red colour represents the negative regions of the Wigner transform. The only envelope free of negative parts is the Gaussian envelope. However, the negative regions in the remaining envelopes are located at edges of the distribution with negligible intensities. The code allows to treat the negative regions by either ignoring them (`--neg_handling ignore`) or taking the absolute values (`--neg_handling abs`). As default, the code issues error to inform the user that the negative probabilities must be handled.
 
-![envelope_wigner_transform.png](https://github.com/PHOTOX/promdens/blob/readme-improve/supplementary/envelopes_analysis/envelope_wigner_transform.png)
+![envelope_wigner_transform.png](https://github.com/PHOTOX/promdens/blob/main/supplementary/envelopes_analysis/envelope_wigner_transform.png)
 
 ### Notes on some keywords
 
