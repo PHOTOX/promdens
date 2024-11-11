@@ -73,7 +73,7 @@ In the following, we provide an example of the input file for the first two exci
 ```
 The first column always considers the index (label) of the given position-momentum pair. 
 This index is used in the output to specify the selected position-momentum pairs.
-The following columns come in pairs for each excited state: the first column contains the excitation energy while the second column bears the magnitudes of the transition dipole moment.
+The following columns come in pairs for each excited state: the first column contains the excitation energy while the second column bears the magnitudes of the transition dipole moment. Note that the header is not mandatory in the input file. 
 We will use this input file in the following examples and refer to it as to `input_file.dat`.
 
 ## Usage
