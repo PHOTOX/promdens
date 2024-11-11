@@ -26,20 +26,20 @@ ENVELOPE_TYPES = ['gauss', 'lorentz', 'sech', 'sin', 'sin2']
 NEG_PROB_HANDLING = ['error', 'ignore', 'abs']
 FILE_TYPES = ['file']
 
-DESC = "Promoted density approach for initial conditions"
+DESC = "PROMDENS: Promoted Density Approach code"
 
 
 ### functions and classes ###
 def print_header():
-    print("\n##########################################################\n"
-          f"###  {DESC}  ###\n"
-          "###                   * * * * *                        ###\n"
-          "###       version 1.0         Jiri Janos 2024          ###\n"
-          "##########################################################\n")
+    print("\n#############################################################\n"
+          f"###        {DESC}       ###\n"
+          "###                       * * * * *                       ###\n"
+          "###     version 1.0.0         |       Jiri Janos 2024     ###\n"
+          "#############################################################\n")
 
 
 def print_footer():
-    print('\nPromoted density approached calculation finished.'
+    print('\nPromoted Density Approach calculation finished.'
           '\n - "May the laser pulses be with you."\n')
     print("       %.                                \n"
           "        %.                    #%%%%%%%%  \n"
@@ -440,7 +440,8 @@ class InitialConditions:
         else:
             preselected = np.zeros(shape=(self.nstates, self.nsamples), dtype=bool)
 
-        # setting up random generator with a seed (None means random seed form OS taken)
+        # setting up random generator with a seed (None means random seed from OS taken),
+        # see https://blog.scientific-python.org/numpy/numpy-rng/
         rng = np.random.default_rng(seed=seed)
 
         i, nattempts, start = 0, 0, timer()  # i: loop index; nattempts: to calculate efficiency of the sampling; start: time t0
