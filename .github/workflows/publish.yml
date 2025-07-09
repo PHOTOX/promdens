@@ -14,7 +14,7 @@ env:
 jobs:
   dist:
     name: Distribution build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
     permissions:
       id-token: write
       pull-requests: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/download-artifact@v4
@@ -67,7 +67,7 @@ jobs:
       github.repository == 'PHOTOX/promdens' &&
       github.event_name == 'push' &&
       github.ref_type == 'tag'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     environment:
        name: pypi
        url: https://pypi.org/p/promdens/

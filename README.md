@@ -38,6 +38,14 @@ and uv
 pip install uv
 uv tool install promdens
 ```
+
+### Testing
+Correct installation can be checked by running the test suite with
+```console
+pytest -v
+```
+The command can be triggered either in the main directory or in the `tests` folder. Testing also serves as a way for developers to verify that any modification to the code does not alter the outcome.
+
 ## Brief outline of the code 
 The code makes several steps and analysis procedures before it calculates the promoted density quantities.
 The **PROMDENS** workflow is briefly summarized as:
