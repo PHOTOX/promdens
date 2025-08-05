@@ -248,5 +248,52 @@ For `lorentz`, `sin2` and `sech`, the analytic formulas are currently not availa
 
 $$\mathcal{W}_ \varepsilon(t^\prime,\omega) = 2\int_{0}^{\infty} \varepsilon\left(t^\prime+\frac{s}{2}\right) \varepsilon\left(t^\prime-\frac{s}{2}\right) \cos(\omega s)\mathrm{d} s$$
 
-which simplifies the integral evaluation since the lower integral limit is 0 instead of $$-\infty$$ and also allows to use only real numbers instead of complex numbers due to the complex exponential. The speed up si rougly four times. In practice, the integral is evaluated using the trapezoidal rule with adaptive upper limit and integration step set according to the frequency and envelope.
+which simplifies the integral evaluation since the lower integral limit is 0 instead of $$-\infty$$ and also allows to use only real numbers instead of complex numbers due to the complex exponential. The speed up si rougly four times. In practice, the integral is evaluated using the trapezoidal rule with an adaptive upper limit and an integration step set according to the frequency and envelope.
 
+## Citations
+
+If you use PROMDENS, please cite the PDA(W) method published in the [Journal of Physical Chemistry Letters](https://doi.org/10.1021/acs.jpclett.4c02549):
+> Jiří Janoš, Petr Slavíček, and Basile F. E. Curchod, *The Journal of Physical Chemistry Letters* **2024** *15* (42), 10614-10622
+
+```bibtex
+@article{Janos2024,
+author = {Janoš, Jiří and Slavíček, Petr and Curchod, Basile F. E.},
+title = {Including Photoexcitation Explicitly in Trajectory-Based Nonadiabatic Dynamics at No Cost},
+journal = {The Journal of Physical Chemistry Letters},
+volume = {15},
+number = {42},
+pages = {10614-10622},
+year = {2024},
+doi = {10.1021/acs.jpclett.4c02549},
+URL = {https://doi.org/10.1021/acs.jpclett.4c02549}
+}
+```
+
+and the PROMDENS code:
+```bibtex
+@software{Janos_PROMDENS_Promoted_Density_2024,
+author = {Janoš, Jiří and Hollas, Daniel},
+month = nov,
+title = {{PROMDENS: Promoted Density Approach code}},
+url = {https://github.com/PHOTOX/promdens},
+version = {1.0.1},
+year = {2024}
+}
+```
+
+Furthermore, you can cite our broader review in [Accounts of Chemical Research](https://pubs.acs.org/doi/10.1021/acs.accounts.4c00687):
+> Jiří Janoš, Petr Slavíček, and Basile F. E. Curchod, *Accounts of Chemical Research* **2025** *58* (2), 261-270
+
+```bibtex
+@article{Janos2025,
+author = {Janoš, Jiří and Slavíček, Petr and Curchod, Basile F. E.},
+title = {Selecting Initial Conditions for Trajectory-Based Nonadiabatic Simulations},
+journal = {Accounts of Chemical Research},
+volume = {58},
+number = {2},
+pages = {261-270},
+year = {2025},
+doi = {10.1021/acs.accounts.4c00687},
+URL = {https://doi.org/10.1021/acs.accounts.4c00687}
+}
+```
