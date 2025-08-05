@@ -146,18 +146,18 @@ If the same command were used with PDAW instead of PDA (`--method pdaw`), the ou
        9      1.47188e-03      1.37747e-01
       10      1.33347e-06      3.55670e-01
 ```
-The code provides the pulse intensity $$I$$ and weights $$w_i$$ necessary for calculating any time-dependent observable $$\mathcal{O}(t)$$ based on equation
+The code provides the pulse intensity $I$ and weights $w_i$ necessary for calculating any time-dependent observable $\mathcal{O}(t)$ based on equation
 
 $$\mathcal{O}(t) = \int_{-\infty}^{\infty} \bar{I}(t-t^{\prime}) \frac{\sum_i w_i \mathcal{O}_i(t^\prime)}{\sum_i w_i} \mathrm{d} t^{\prime} , $$
 
-where $$\bar{I}$$ is normalized pulse intensity and $$\mathcal{O}_i$$ is the observable calculated for trajectory $$i$$. Note that the intensity should be normalized before being used in convolution. If only a restricted number of trajectories can be calculated, the user should choose the indices and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in $$S_1$$ and indexes 3, 4, 5, 8, 9, and 10 starting in $$S_2$$.
+where $\bar{I}$ is normalized pulse intensity and $\mathcal{O}_i$ is the observable calculated for trajectory $i$. Note that the intensity should be normalized before being used in convolution. If only a restricted number of trajectories can be calculated, the user should choose the indices and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in $S_1$ and indexes 3, 4, 5, 8, 9, and 10 starting in $S_2$.
 
 If the user selects option `--plot`, the code will produce a series of plots analyzing the provided data and calculated results, e.g. the absorption spectrum calculated with the nuclear ensemble method, the pulse spectrum or the Wigner pulse transform.
 
 ### Laser field representation
 
-The laser field in the code is represented as an envelope $$\varepsilon(t)$$ multiplied by $$\cos\left[(\omega_0+\beta t) t\right]$$ where $$\omega_0$$ is the central pulse frequency (`omega`) and $$\gamma$$ is the linear chirp parameter `linear_chirp`.
-The code allow to select several pulse envelopes which are defined through $$t_0$$ (`t0`) and the full width at half maximum (FWHM) parameter $$\tau$$ (`fwhm`). Note that the FWHM parameter is defined for the intensity of the pulse, i.e., the square of the pulse envelope.
+The laser field in the code is represented as an envelope $\varepsilon(t)$ multiplied by $\cos\left[(\omega_0+\beta t) t\right]$ where $\omega_0$ is the central pulse frequency (`omega`) and $\gamma$ is the linear chirp parameter `linear_chirp`.
+The code allow to select several pulse envelopes which are defined through $t_0$ (`t0`) and the full width at half maximum (FWHM) parameter $\tau$ (`fwhm`). Note that the FWHM parameter is defined for the intensity of the pulse, i.e., the square of the pulse envelope.
 
 ##### Gaussian envelope (`gauss`):
 $$\varepsilon(t)=\exp\left[-2\ln2\left( \frac{t - t_0}{\tau} \right)^2\right]$$
@@ -182,7 +182,7 @@ $$T = \frac{1}{2-4/\pi\arcsin(2^{-1/4})} \tau = 1.373412575\tau$$
 
 #### Characteristics of the envelopes
 
-The following figure shows the envelope $$\varepsilon(t)$$, the pulse intensity $$I(t)\propto\varepsilon^2(t)$$, the pulse spectrum $$|\varepsilon(\omega)|$$ (Fourier transform of $$\varepsilon(t)$$) and the pulse spectral intensity $$S(\omega)\propto\varepsilon^2(\omega)$$.
+The following figure shows the envelope $\varepsilon(t)$, the pulse intensity $I(t)\propto\varepsilon^2(t)$, the pulse spectrum $|\varepsilon(\omega)|$ (Fourier transform of $\varepsilon(t)$ ) and the pulse spectral intensity $S(\omega)\propto\varepsilon^2(\omega)$.
 
 ![implemented_envelopes.png](https://github.com/PHOTOX/promdens/blob/main/supplementary/envelopes_analysis/implemented_envelopes.png)
 
@@ -218,21 +218,21 @@ The PDA and PDAW are based on the Wigner pulse transform which requires evaluati
 
 $$\mathcal{W}_E(t^\prime,\omega)=\int _{-\infty}^{\infty} E\left(t^\prime+\frac{s}{2}\right) E^*\left(t^\prime-\frac{s}{2}\right) \mathrm{e}^{-i\omega s} \mathrm{d} s$$
 
-where the frequency is given by the excitation energy ($$\omega=\Delta E/\hbar$$) and $$t^\prime$$ is the excitation time. To simplify the integral evaluation, we implemented a simpler Wigner pulse envelope transform (see the SI of our [article](https://doi.org/10.1021/acs.jpclett.4c02549) for more details):
+where the frequency is given by the excitation energy ($\omega=\Delta E/\hbar$) and $t^\prime$ is the excitation time. To simplify the integral evaluation, we implemented a simpler Wigner pulse envelope transform (see the SI of our [article](https://doi.org/10.1021/acs.jpclett.4c02549) for more details):
 
 $$\mathcal{W}_\varepsilon(t^\prime,\omega) = \int _{-\infty}^{\infty}  \varepsilon\left(t^\prime+\frac{s}{2}\right) \varepsilon\left(t^\prime-\frac{s}{2}\right) \mathrm{e}^{-i\omega s}  \mathrm{d}s$$
 
-where $$\varepsilon$$ is the pulse envelope. The relation between the two Wigner transforms reads:
+where $\varepsilon$ is the pulse envelope. The relation between the two Wigner transforms reads:
 
 $$\mathcal{W}_ {E}(t^\prime,\omega) = \mathcal{W}_\varepsilon(t^\prime,\omega-(\omega_0+2\beta t^\prime))$$
 
-where $$\omega_0+2\beta t$$ is the immediate frequency for pulse described as $$E(t) = E_0 \varepsilon(t)\cos[(\omega_0+\beta t)t]$$.
+where $\omega_0+2\beta t$ is the immediate frequency for pulse described as $E(t) = E_0 \varepsilon(t)\cos[(\omega_0+\beta t)t]$.
 
 While the `gauss` and `sin` envelope Wigner transforms are calculated analytically, `lorentz`, `sin2` and `sech` envelopes are calculated numerically with the trapezoid rule since we have not derived analytic formulas so far.
 
 #### Analytic formulas for the Wigner pulse envelope transform
 
-The analytic formulas for the Wigner pulse envelope transform, $$\mathcal{W}_\varepsilon$$, are available only for the Gaussian and Sinusoidal envelopes:
+The analytic formulas for the Wigner pulse envelope transform, $\mathcal{W}_\varepsilon$, are available only for the Gaussian and Sinusoidal envelopes:
 
 ##### Gaussian envelope (`gauss`):
 $$\mathcal{W}_\varepsilon(t^\prime,\omega)=\tau\sqrt{\frac{\pi}{\ln2}}16^{-\frac{(t^\prime - t_0)^2}{\tau^2}}\exp\left(-\frac{\tau^2\omega^2}{\ln16}\right)$$
@@ -252,7 +252,7 @@ For `lorentz`, `sin2` and `sech`, the analytic formulas are currently not availa
 
 $$\mathcal{W}_ \varepsilon(t^\prime,\omega) = 2\int_{0}^{\infty} \varepsilon\left(t^\prime+\frac{s}{2}\right) \varepsilon\left(t^\prime-\frac{s}{2}\right) \cos(\omega s)\mathrm{d} s$$
 
-which simplifies the integral evaluation since the lower integral limit is 0 instead of $$-\infty$$ and also allows to use only real numbers instead of complex numbers due to the complex exponential. The speed up si rougly four times. In practice, the integral is evaluated using the trapezoidal rule with an adaptive upper limit and an integration step set according to the frequency and envelope.
+which simplifies the integral evaluation since the lower integral limit is 0 instead of $-\infty$ and also allows to use only real numbers instead of complex numbers due to the complex exponential. The speed up si rougly four times. In practice, the integral is evaluated using the trapezoidal rule with an adaptive upper limit and an integration step set according to the frequency and envelope.
 
 ## Citations
 
