@@ -1,10 +1,15 @@
+[![Version](https://img.shields.io/badge/Version-1.0.1-blue)](https://github.com/PHOTOX/promdens/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue)](/LICENSE)
+[![CI](https://github.com/PHOTOX/promdens/actions/workflows/ci.yml/badge.svg)](https://github.com/PHOTOX/promdens/actions/workflows/ci.yml)
+
 # PROMDENS: Promoted Density Approach code
 
 **PROMDENS** is a Python code implementing the Promoted Density Approach (PDA) and its version for windowing (PDAW), freely available to the scientific community under the MIT license.
 PDA and PDAW are techniques for implicit inclusion of laser pulses in trajectory-based nonadiabatic dynamics, such as trajectory surface hopping or _ab initio_ multiple spawning.
 PDA generates initial conditions (positions, momenta and excitation times) for the excited-state dynamics, while PDAW provides weights and convolution functions for the trajectories created using the vertical excitation approach.
 Both methods take as input ground-state positions and momenta with corresponding excitation energies and transition dipole moments (quantities readily available from absorption spectra calculation with the Nuclear Ensemble Approach). 
-Description of PDA and PDAW, their derivation and benchmark against quantum dynamics can be found in our recent paper in [JPCL](https://doi.org/10.1021/acs.jpclett.4c02549).
+> [!NOTE]
+> Description of PDA and PDAW, their derivation and benchmark against quantum dynamics can be found in our paper in [Journal of Physical Chemistry Letters](https://doi.org/10.1021/acs.jpclett.4c02549). A broader review on selecting initial conditions for trajectory-based methods, including a discussion of PDA, is available in our recent review in [Accounts of Chemical Research](https://pubs.acs.org/doi/10.1021/acs.accounts.4c00687).
 
 ## Installation
 The code is published on PyPI and can be installed with pip
@@ -22,7 +27,7 @@ promdens --help
 The minimum supported Python version is 3.7.
 The code depends on `numpy` and `matplotlib` libraries that are automatically installed by pip.
 However, since pip by default installs packages into a global Python environment,
-it can break previously installed packages e.g. by installing an incompatible version of numpy.
+it can break previously installed packages, e.g., by installing an incompatible version of numpy.
 
 Therefore, we recommend using tools like [pipx](https://pipx.pypa.io/stable/) or [uv](https://docs.astral.sh/uv) which install the dependencies into an isolated Python environment but still make the `promdens` command globally available.
 See the example for pipx
@@ -50,15 +55,15 @@ The command can be triggered either in the main directory or in the `tests` fold
 The code makes several steps and analysis procedures before it calculates the promoted density quantities.
 The **PROMDENS** workflow is briefly summarized as:
 1) The absorption spectrum is calculated using the Nuclear Ensemble Approach and decomposed into different excited states. 
-2) The laser field and its characteristics such as spectral intensity are calculated. 
+2) The laser field and its characteristics, such as spectral intensity, are calculated. 
 3) The code checks if the pulse fulfils Maxwell equations, i.e., is not too short.
 4) The excitation times for PDA or weights for PDAW are calculated.
 
 All the steps are commented in the verbose code output.
 
 ## Input
-Both PDA and PDAW require as an input excitation energies and magnitudes of transition dipole moments for each position-momentum pair in the sample of initial (ground-state) density.
-These quantites are usually readily available from calculations of absorption spectra using the Nuclear Ensemble Approach.
+Both PDA and PDAW require as input excitation energies and magnitudes of transition dipole moments for each position-momentum pair in the sample of initial (ground-state) density.
+These quantities are usually readily available from calculations of absorption spectra using the Nuclear Ensemble Approach.
 The code does not need the positions and momenta itself but only their excitation energies and magnitudes of transition dipole moments, from which it selects the right position-momentum pairs and assigns them excitation times.
 
 ### Structure of the input file
@@ -82,11 +87,11 @@ In the following, we provide an example of the input file for the first two exci
 The first column always considers the index (label) of the given position-momentum pair. 
 This index is used in the output to specify the selected position-momentum pairs.
 The following columns come in pairs for each excited state: the first column contains the excitation energy while the second column bears the magnitudes of the transition dipole moment. Note that the header is not mandatory in the input file. 
-We will use this input file in the following examples and refer to it as to `input_file.dat`.
+We will use this input file in the following examples and refer to it as `input_file.dat`.
 
 ## Usage
 The code requires information about the method (PDA or PDAW, `--method`), the number of excited states to consider (`--nstates`), 
-the number of initials conditions to be generated (`--npsamples`), and the characteristics of the laser pulse, such as the envelope type 
+the number of initial conditions to be generated (`--npsamples`), and the characteristics of the laser pulse, such as the envelope type 
 (Gaussian, Lorentzian, sech, etc., `--envelope_type`), the pulse frequency (`--omega`), the linear chirp parameter (`--linear_chirp`), and the full width at half maximum parameter (`--fwhm`). 
 The units of excitation energies (`--energy_unit`) and transition dipole moments can be specified (`--tdm_unit debye`).
 An optional flag is `--plot`, which produces and saves plots of the absorption spectrum, laser pulse characteristics and the final analysis of the results. 
@@ -121,11 +126,11 @@ The trajectories 3, 9 and 10 are then accounted for in the trajectory ensemble m
 This multiple accounting of the same trajectory mimics the temporal spread of the laser pulse.
 A larger number of samples is recommended to get smooth curves fully accounting for the pulse duration. 
 
-Let us now briefly comment on the generation of initial conditions with PDA and the processing of the data. The code selects `npsamples` initial conditions, yet some of them will be generally taken multiple times. Thus, the number of samples used for nonadiabatic dynamics will be smaller than `npsamples`. However, the restriction usually lies in the maximum number of trajectories calculated, i.e., the number of unique indexes (position-momentum pairs) selected. Imagine we want to run 100 trajectories. We run the code with `--npsamples 1000` generating 1000 initial conditions, which will contain for example 250 unique indexes. Since we cannot run 250 trajectories, we need to decrease `npsamples` and optimize the value until we obtain the required 100 unique position-momentum pairs. 
+Let us now briefly comment on the generation of initial conditions with PDA and the processing of the data. The code selects `npsamples` initial conditions, yet some of them will be generally taken multiple times. Thus, the number of samples used for nonadiabatic dynamics will be smaller than `npsamples`. However, the restriction usually lies in the maximum number of trajectories calculated, i.e., the number of unique indexes (position-momentum pairs) selected. Imagine we want to run 100 trajectories. We run the code with `--npsamples 1000`, generating 1000 initial conditions, which will contain, for example, 250 unique indices. Since we cannot run 250 trajectories, we need to decrease `npsamples` and optimize the value until we obtain the required 100 unique position-momentum pairs. 
 
 ### PDAW
 
-If the same command would be used with PDAW instead of PDA (`--method pdaw`), the output file `pdaw.dat` would look like
+If the same command were used with PDAW instead of PDA (`--method pdaw`), the output file `pdaw.dat` would look like
 ```
 # Convolution: I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)
 # Parameters:  fwhm = 3.000 fs, t0 = 0.000 fs
@@ -145,7 +150,7 @@ The code provides the pulse intensity $I$ and weights $w_i$ necessary for calcul
 
 $$\mathcal{O}(t) = \int_{-\infty}^{\infty} \bar{I}(t-t^{\prime}) \frac{\sum_i w_i \mathcal{O}_i(t^\prime)}{\sum_i w_i} \mathrm{d} t^{\prime} , $$
 
-where $\bar{I}$ is normalized pulse intensity and $\mathcal{O}_i$ is the observable calculated for trajectory $i$. Note that the intensity should be normalized before being used in convolution. If only a restricted amount of trajectories can be calculated, the user should choose the indexes and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in $S_1$ and indexes 3, 4, 5, 8, 9, and 10 starting in $S_2$.
+where $\bar{I}$ is normalized pulse intensity and $\mathcal{O}_i$ is the observable calculated for trajectory $i$. Note that the intensity should be normalized before being used in convolution. If only a restricted number of trajectories can be calculated, the user should choose the indices and initial excited states corresponding to the largest weights in the file. For example, if we could run only 10 trajectories of protonated formaldimin, we would run ground-state position-momentum pairs with indexes 3, 4, 7, and 9 starting in $S_1$ and indexes 3, 4, 5, 8, 9, and 10 starting in $S_2$.
 
 If the user selects option `--plot`, the code will produce a series of plots analyzing the provided data and calculated results, e.g. the absorption spectrum calculated with the nuclear ensemble method, the pulse spectrum or the Wigner pulse transform.
 
@@ -154,7 +159,7 @@ If the user selects option `--plot`, the code will produce a series of plots ana
 The laser field in the code is represented as an envelope $\varepsilon(t)$ multiplied by $\cos\left[(\omega_0+\beta t) t\right]$ where $\omega_0$ is the central pulse frequency (`omega`) and $\gamma$ is the linear chirp parameter `linear_chirp`.
 The code allow to select several pulse envelopes which are defined through $t_0$ (`t0`) and the full width at half maximum (FWHM) parameter $\tau$ (`fwhm`). Note that the FWHM parameter is defined for the intensity of the pulse, i.e., the square of the pulse envelope.
 
-##### Guassian envelope (`gauss`):
+##### Gaussian envelope (`gauss`):
 $$\varepsilon(t)=\exp\left[-2\ln2\left( \frac{t - t_0}{\tau} \right)^2\right]$$
 
 ##### Lorentzian envelope (`lorentz`): 
@@ -177,11 +182,11 @@ $$T = \frac{1}{2-4/\pi\arcsin(2^{-1/4})} \tau = 1.373412575\tau$$
 
 #### Characteristics of the envelopes
 
-The following figure shows the envelope $\varepsilon(t)$, the pulse intensity $I(t)\propto\varepsilon^2(t)$, the pulse spectrum $|\varepsilon(\omega)|$ (Fourier transform of $\varepsilon(t)$) and the pulse spectral intensity $S(\omega)\propto\varepsilon^2(\omega)$.
+The following figure shows the envelope $\varepsilon(t)$, the pulse intensity $I(t)\propto\varepsilon^2(t)$, the pulse spectrum $|\varepsilon(\omega)|$ (Fourier transform of $\varepsilon(t)$ ) and the pulse spectral intensity $S(\omega)\propto\varepsilon^2(\omega)$.
 
 ![implemented_envelopes.png](https://github.com/PHOTOX/promdens/blob/main/supplementary/envelopes_analysis/implemented_envelopes.png)
 
-The pulse envelope Wigner transforms for the presented pulses are presented in the next figure in standard and logarithmic scales. The red colour represents the negative regions of the Wigner transform. The only envelope free of negative parts is the Gaussian envelope. However, the negative regions in the remaining envelopes are located at edges of the distribution with negligible intensities. The code allows to treat the negative regions by either ignoring them (`--neg_handling ignore`) or taking the absolute values (`--neg_handling abs`). As default, the code issues error to inform the user that the negative probabilities must be handled.
+The pulse envelope Wigner transforms for the presented pulses are presented in the next figure in standard and logarithmic scales. The red colour represents the negative regions of the Wigner transform. The only envelope free of negative parts is the Gaussian envelope. However, the negative regions in the remaining envelopes are located at the edges of the distribution with negligible intensities. The code allows to treat the negative regions by either ignoring them (`--neg_handling ignore`) or taking the absolute values (`--neg_handling abs`). By default, the code issues an error to inform the user that the negative probabilities must be handled.
 
 ![envelope_wigner_transform.png](https://github.com/PHOTOX/promdens/blob/main/supplementary/envelopes_analysis/envelope_wigner_transform.png)
 
@@ -189,16 +194,19 @@ The pulse envelope Wigner transforms for the presented pulses are presented in t
 
 While most of the keywords are explained in the code description available by `promdens -h`, some of them require some further information. 
 Here, we summarize these keywords and provide recommendations for their usage.
-* `--preselect`: This keyword preselects provided samples using the pulse spectral intensity and discards samples that far from resonance. 
+* `--preselect`: This keyword preselects provided samples using the pulse spectral intensity and discards samples that are far from resonance. 
 We recommend this keyword in case the pulse spectrum targets only a part of the absorption spectrum, or when a lot of states are calculated.
 It saves a significant amount of computational time in such cases as it prevents the code from testing samples with negligible excitation probability.
-However, final production calculations should be always done without preselection
+> [!IMPORTANT]
+> However, final production calculations should be always done without preselection.
 * `--random_seed`: The PDA algorithm generates random numbers and compares them with the excitation probability in order to generate excitation times, which makes it stochastic (note that PDAW is fully deterministic and unaffected by this choice).
 We recommend using the default option and generating a new random seed for each calculation. 
-However, if reproducibility is required (as in our test suite), the random seed can be set.
-* `--file_type`: Currently the only input file type available is described in section **Input**, no flexibility is available. 
-In the future, we intend to implement other input file types based on standard output files from widely used code such as SHARC or NEWTON-X. 
-If the users would find a use of any specific input file type which is not currently implemented, feel free to contact the developers for implementation.
+> [!TIP]
+> However, if reproducibility is required (as in our test suite), the random seed can be set.
+* `--file_type`: Currently, the only input file type available is described in section **Input**, no flexibility is available. 
+In the future, we intend to implement other input file types based on standard output files from widely used codes such as SHARC or NEWTON-X. 
+> [!NOTE]
+> If the users would find a use of any specific input file type which is not currently implemented, feel free to contact the developers for implementation.
 
 ## Technical details
 
@@ -220,7 +228,7 @@ $$\mathcal{W}_ {E}(t^\prime,\omega) = \mathcal{W}_\varepsilon(t^\prime,\omega-(\
 
 where $\omega_0+2\beta t$ is the immediate frequency for pulse described as $E(t) = E_0 \varepsilon(t)\cos[(\omega_0+\beta t)t]$.
 
-While the `gauss` and `sin` envelope Wigner transforms are calculated analytically, `lorentz`, `sin2` and `sech` envelopes are calculated numerically with the trapezoid rule since we so far have not derived analytic formulas.
+While the `gauss` and `sin` envelope Wigner transforms are calculated analytically, `lorentz`, `sin2` and `sech` envelopes are calculated numerically with the trapezoid rule since we have not derived analytic formulas so far.
 
 #### Analytic formulas for the Wigner pulse envelope transform
 
@@ -230,9 +238,7 @@ The analytic formulas for the Wigner pulse envelope transform, $\mathcal{W}_\var
 $$\mathcal{W}_\varepsilon(t^\prime,\omega)=\tau\sqrt{\frac{\pi}{\ln2}}16^{-\frac{(t^\prime - t_0)^2}{\tau^2}}\exp\left(-\frac{\tau^2\omega^2}{\ln16}\right)$$
 
 ##### Sinusoidal envelope (`sin`):
-$\mathcal{W}_\varepsilon(t^\prime,\omega)=$
-
-$$\pi\frac{-2\tau\omega\cos(2(t^\prime - t_0 + \tau)\omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(t^\prime - t_0 + \tau)\omega))}{\omega(\pi^2 - 4\tau^2\omega^2)} \quad \quad \text{if} \quad t^\prime < t_0 \quad \text{and} \quad t^\prime > t_0 - \tau $$
+$$\mathcal{W}_\varepsilon(t^\prime,\omega)=\pi\frac{-2\tau\omega\cos(2(t^\prime - t_0 + \tau)\omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(t^\prime - t_0 + \tau)\omega))}{\omega(\pi^2 - 4\tau^2\omega^2)} \quad \quad \text{if} \quad t^\prime < t_0 \quad \text{and} \quad t^\prime > t_0 - \tau $$
 
 $$\pi\frac{2\tau\omega\cos(2(-t^\prime + t_0 + \tau)\omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(-t^\prime + t_0 + \tau)\omega))}{\omega(\pi^2 - 4\tau^2\omega^2)} \quad \quad \text{if} \quad t^\prime \ge t_0 \quad \text{and} \quad t^\prime < t_0 - \tau $$
 
@@ -244,5 +250,52 @@ For `lorentz`, `sin2` and `sech`, the analytic formulas are currently not availa
 
 $$\mathcal{W}_ \varepsilon(t^\prime,\omega) = 2\int_{0}^{\infty} \varepsilon\left(t^\prime+\frac{s}{2}\right) \varepsilon\left(t^\prime-\frac{s}{2}\right) \cos(\omega s)\mathrm{d} s$$
 
-which simplifies the integral evaluation since the lower integral limit is 0 instead of $-\infty$ and also allows to use only real numbers instead of complex numbers due to the complex exponential. The speed up si rougly four times. In practice, the integral is evaluated using the trapezoidal rule with adaptive upper limit and integration step set according to the frequency and envelope.
+which simplifies the integral evaluation since the lower integral limit is 0 instead of $-\infty$ and also allows to use only real numbers instead of complex numbers due to the complex exponential. The speed up si rougly four times. In practice, the integral is evaluated using the trapezoidal rule with an adaptive upper limit and an integration step set according to the frequency and envelope.
 
+## Citations
+
+If you use PROMDENS, please cite the PDA(W) method published in the [Journal of Physical Chemistry Letters](https://doi.org/10.1021/acs.jpclett.4c02549):
+> Jiří Janoš, Petr Slavíček, and Basile F. E. Curchod, *The Journal of Physical Chemistry Letters* **2024** *15* (42), 10614-10622
+
+```bibtex
+@article{Janos2024,
+author = {Janoš, Jiří and Slavíček, Petr and Curchod, Basile F. E.},
+title = {Including Photoexcitation Explicitly in Trajectory-Based Nonadiabatic Dynamics at No Cost},
+journal = {The Journal of Physical Chemistry Letters},
+volume = {15},
+number = {42},
+pages = {10614-10622},
+year = {2024},
+doi = {10.1021/acs.jpclett.4c02549},
+URL = {https://doi.org/10.1021/acs.jpclett.4c02549}
+}
+```
+
+and the PROMDENS code:
+```bibtex
+@software{PROMDENS2024,
+author = {Janoš, Jiří and Hollas, Daniel},
+month = nov,
+title = {{PROMDENS: Promoted Density Approach code}},
+url = {https://github.com/PHOTOX/promdens},
+version = {1.0.1},
+year = {2024}
+}
+```
+
+Furthermore, you can cite our broader review in [Accounts of Chemical Research](https://pubs.acs.org/doi/10.1021/acs.accounts.4c00687):
+> Jiří Janoš, Petr Slavíček, and Basile F. E. Curchod, *Accounts of Chemical Research* **2025** *58* (2), 261-270
+
+```bibtex
+@article{Janos2025,
+author = {Janoš, Jiří and Slavíček, Petr and Curchod, Basile F. E.},
+title = {Selecting Initial Conditions for Trajectory-Based Nonadiabatic Simulations},
+journal = {Accounts of Chemical Research},
+volume = {58},
+number = {2},
+pages = {261-270},
+year = {2025},
+doi = {10.1021/acs.accounts.4c00687},
+URL = {https://doi.org/10.1021/acs.accounts.4c00687}
+}
+```
