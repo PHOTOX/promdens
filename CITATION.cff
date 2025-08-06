@@ -10,22 +10,22 @@ title: "PROMDENS: Promoted Density Approach code"
 version: 1.0.1
 url: "https://github.com/PHOTOX/promdens"
 date-released: 2024-11-11
-preferred-citation:
-  type: article
-  authors:
-  - family-names: Janoš
-    given-names: Jiří
-    orcid: https://orcid.org/0000-0001-5903-8538
-  - family-names: Petr
-    given-names: Slavíček
-  - family-names: Basile F. E.
-    given-names: Curchod
-  doi: "10.1021/acs.jpclett.4c02549"
-  journal: "The Journal of Physical Chemistry Letters"
-  start: 10614
-  end: 10622
-  title: "Including Photoexcitation Explicitly in Trajectory-Based Nonadiabatic Dynamics at No Cost"
-  issue: 42
-  volume: 15
-  year: 2024
-  URL: https://doi.org/10.1021/acs.jpclett.4c02549
+# preferred-citation:
+#  type: article
+#  authors:
+#  - family-names: Janoš
+#    given-names: Jiří
+#    orcid: https://orcid.org/0000-0001-5903-8538
+#  - family-names: Petr
+#    given-names: Slavíček
+#  - family-names: Basile F. E.
+#    given-names: Curchod
+#  doi: "10.1021/acs.jpclett.4c02549"
+#  journal: "The Journal of Physical Chemistry Letters"
+#  start: 10614
+#  end: 10622
+#  title: "Including Photoexcitation Explicitly in Trajectory-Based Nonadiabatic Dynamics at No Cost"
+#  issue: 42
+#  volume: 15
+#  year: 2024
+#  URL: https://doi.org/10.1021/acs.jpclett.4c02549
