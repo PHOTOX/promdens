@@ -8,8 +8,8 @@
 PDA and PDAW are techniques for implicit inclusion of laser pulses in trajectory-based nonadiabatic dynamics, such as trajectory surface hopping or _ab initio_ multiple spawning.
 PDA generates initial conditions (positions, momenta and excitation times) for the excited-state dynamics, while PDAW provides weights and convolution functions for the trajectories created using the vertical excitation approach.
 Both methods take as input ground-state positions and momenta with corresponding excitation energies and transition dipole moments (quantities readily available from absorption spectra calculation with the Nuclear Ensemble Approach). 
-> [!TIP]
-> Description of PDA and PDAW, their derivation and benchmark against quantum dynamics can be found in the [Journal of Physical Chemistry Letters](https://doi.org/10.1021/acs.jpclett.4c02549). A broader review on selecting initial conditions for trajectory-based methods, including a discussion of PDA, is available in our recent review in [Accounts of Chemical Research](https://pubs.acs.org/doi/10.1021/acs.accounts.4c00687).
+> [!NOTE]
+> Description of PDA and PDAW, their derivation and benchmark against quantum dynamics can be found in our paper in [Journal of Physical Chemistry Letters](https://doi.org/10.1021/acs.jpclett.4c02549). A broader review on selecting initial conditions for trajectory-based methods, including a discussion of PDA, is available in our recent review in [Accounts of Chemical Research](https://pubs.acs.org/doi/10.1021/acs.accounts.4c00687).
 
 ## Installation
 The code is published on PyPI and can be installed with pip
@@ -201,11 +201,11 @@ It saves a significant amount of computational time in such cases as it prevents
 > However, final production calculations should be always done without preselection.
 * `--random_seed`: The PDA algorithm generates random numbers and compares them with the excitation probability in order to generate excitation times, which makes it stochastic (note that PDAW is fully deterministic and unaffected by this choice).
 We recommend using the default option and generating a new random seed for each calculation. 
-> [!IMPORTANT]
+> [!TIP]
 > However, if reproducibility is required (as in our test suite), the random seed can be set.
 * `--file_type`: Currently, the only input file type available is described in section **Input**, no flexibility is available. 
 In the future, we intend to implement other input file types based on standard output files from widely used codes such as SHARC or NEWTON-X. 
-> [!IMPORTANT]
+> [!NOTE]
 > If the users would find a use of any specific input file type which is not currently implemented, feel free to contact the developers for implementation.
 
 ## Technical details
