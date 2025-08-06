@@ -238,9 +238,7 @@ The analytic formulas for the Wigner pulse envelope transform, $\mathcal{W}_\var
 $$\mathcal{W}_\varepsilon(t^\prime,\omega)=\tau\sqrt{\frac{\pi}{\ln2}}16^{-\frac{(t^\prime - t_0)^2}{\tau^2}}\exp\left(-\frac{\tau^2\omega^2}{\ln16}\right)$$
 
 ##### Sinusoidal envelope (`sin`):
-$$\mathcal{W}_\varepsilon(t^\prime,\omega)=$$
-
-$$\pi\frac{-2\tau\omega\cos(2(t^\prime - t_0 + \tau)\omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(t^\prime - t_0 + \tau)\omega))}{\omega(\pi^2 - 4\tau^2\omega^2)} \quad \quad \text{if} \quad t^\prime < t_0 \quad \text{and} \quad t^\prime > t_0 - \tau $$
+$$\mathcal{W}_\varepsilon(t^\prime,\omega)=\pi\frac{-2\tau\omega\cos(2(t^\prime - t_0 + \tau)\omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(t^\prime - t_0 + \tau)\omega))}{\omega(\pi^2 - 4\tau^2\omega^2)} \quad \quad \text{if} \quad t^\prime < t_0 \quad \text{and} \quad t^\prime > t_0 - \tau $$
 
 $$\pi\frac{2\tau\omega\cos(2(-t^\prime + t_0 + \tau)\omega)\sin(\pi(t^\prime - t_0)/\tau) +\pi\cos(\pi(t^\prime - t_0)/\tau)\sin(2(-t^\prime + t_0 + \tau)\omega))}{\omega(\pi^2 - 4\tau^2\omega^2)} \quad \quad \text{if} \quad t^\prime \ge t_0 \quad \text{and} \quad t^\prime < t_0 - \tau $$
 
