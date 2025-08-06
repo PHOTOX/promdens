@@ -273,7 +273,7 @@ URL = {https://doi.org/10.1021/acs.jpclett.4c02549}
 
 and the PROMDENS code:
 ```bibtex
-@software{Janos_PROMDENS_Promoted_Density_2024,
+@software{PROMDENS2024,
 author = {Janoš, Jiří and Hollas, Daniel},
 month = nov,
 title = {{PROMDENS: Promoted Density Approach code}},
