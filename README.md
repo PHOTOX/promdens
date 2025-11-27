@@ -89,6 +89,11 @@ This index is used in the output to specify the selected position-momentum pairs
 The following columns come in pairs for each excited state: the first column contains the excitation energy while the second column bears the magnitudes of the transition dipole moment. Note that the header is not mandatory in the input file. 
 We will use this input file in the following examples and refer to it as `input_file.dat`.
 
+> [!NOTE]
+> **Laser field polarization:** Both PDA and PDAW were derived to account for a linear laser field polarization. Although **PROMDENS** does not take the polarization vector $\vec{E}_0$ as a parameter, it can still account for the laser field polarization implicitly through the user input: the user just needs to provide the projection of the transition dipole moments to the laser field polarization $|\vec{\mu}_{0i}\cdot \vec{E}_0|$ in the input file instead of the magnitude $|\vec{\mu}_{0i}|$ as suggested above. In this manner, the code will account for a linearly polarized laser field. Note that if you provide $|\vec{\mu}_{0i}\cdot \vec{E}_0|$, the absorption spectrum calculated by **PROMDENS** corresponds to an effective absorption spectrum seen by the polarized laser pulse, not to the standard absorption spectrum measured in experiments.
+
+TODO: problem with absorption spectrum. Maybe I can revert all the changes in the absorption spectrum calculation and leave only the changes in the PDA/PDAW part?
+
 ## Usage
 The code requires information about the method (PDA or PDAW, `--method`), the number of excited states to consider (`--nstates`), 
 the number of initial conditions to be generated (`--npsamples`), and the characteristics of the laser pulse, such as the envelope type 
