@@ -1,4 +1,5 @@
-[![Version](https://img.shields.io/badge/Version-1.0.1-blue)](https://github.com/PHOTOX/promdens/releases)
+[![Version](https://img.shields.io/badge/Version-1.0.2-blue)](https://github.com/PHOTOX/promdens/releases)
+[![PyPI version](https://img.shields.io/pypi/v/promdens)](https://pypi.org/project/promdens/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](/LICENSE)
 [![CI](https://github.com/PHOTOX/promdens/actions/workflows/ci.yml/badge.svg)](https://github.com/PHOTOX/promdens/actions/workflows/ci.yml)
 
