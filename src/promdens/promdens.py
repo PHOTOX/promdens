@@ -537,9 +537,8 @@ class InitialConditions:
                  to an output file.
         """
 
-        print("* Generating weights and convolution for windowing.")
+        print("* Generating weights and convolution for PDAW.")
 
-        # determine and print convolution function
         # determine and print convolution function
         conv_eq = {
             'gauss'  : "I(t) = exp(-4*ln(2)*(t-t0)^2/fwhm^2)",
@@ -551,7 +550,7 @@ class InitialConditions:
               f"  - Parameters:  fwhm = {self.pulse.fwhm/self.fstoau:.3f} fs, "
               f"t0 = {self.pulse.t0/self.fstoau:.3f} fs")
 
-        print("  - Calculating normalized weights:")
+        print("  - Calculating weights")
         # creating a field for weights
         self.weights = np.zeros((self.nstates, self.nsamples))  # sample index, weights in different states
 
@@ -559,17 +558,23 @@ class InitialConditions:
         for state in range(0, self.nstates):
             self.weights[state] = self.tdm[state]**2*np.interp(self.de[state], self.field_ft_omega, self.field_ft)**2
 
-            # analysis
-            sorted = np.sort(self.weights[state, :]/np.sum(self.weights[state, :]))[
-                     ::-1]  # sorting from the largest weight to smallest
-            print(
-                f"    > State {state + 1} -  analysis of normalized weights (weights/sum of weights on state {state + 1}):\n"
-                f"      - Largest weight: {np.max(self.weights[state, :]):.3e}\n"
-                f"      - Number of ICs making up 90% of S{state + 1} weights: {np.sum(np.cumsum(sorted) < 0.9) + 1:d}\n"
-                f"      - Number of ICs with weights bigger than 0.001: {np.sum(self.weights[state, :] > 0.001):d}")
-
-        # normalization of weights at given state
+        # normalization of all the weights
+        print("  - Normalization of the weights (sum of all weights equals 1)")
         self.weights /= np.sum(self.weights)
+
+        # analysis of the weights
+        print("  - Analysis of the normalized weights for each state:")
+        for state in range(0, self.nstates):
+            # sorting from the largest weight to smallest
+            state_sum = np.sum(self.weights[state, :])
+            sorted = np.sort(self.weights[state, :]/state_sum)[::-1]
+            # analysis
+            print(
+                f"    > State {state + 1}:\n"
+                f"      - State contribution: {state_sum * 100:.3f} %\n"
+                f"      - Largest weight: {np.max(self.weights[state, :]):.3e}\n"
+                f"      - Number of ICs with weights > 0.001: {np.sum(self.weights[state, :] > 0.001):d}\n"
+                f"      - Number of ICs making up 90% of S{state + 1} weights: {np.sum(np.cumsum(sorted) < 0.9) + 1:d}")
 
         # creating a variable for printing with first column being sample indexes
         arr_print = np.zeros((self.nstates + 1, self.nsamples))  # index, weights in different states
@@ -584,7 +589,7 @@ class InitialConditions:
                   f"index        {weights_str}")
         np.savetxt(output_fname, arr_print.T, fmt=['%8d'] + ['%16.5e']*self.nstates, header=header)
 
-        print(f"  - Weights saved to file '{output_fname}'")
+        print(f"  - Weights (normalized) saved to file '{output_fname}'")
 
 
 def plot_spectrum(ics: InitialConditions) -> None:
