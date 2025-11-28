@@ -7,9 +7,9 @@ authors:
   - family-names: Hollas
     given-names: Daniel
 title: "PROMDENS: Promoted Density Approach code"
-version: 1.0.1
+version: 1.0.2
 url: "https://github.com/PHOTOX/promdens"
-date-released: 2024-11-11
+date-released: 2025-11-28
 # preferred-citation:
 #  type: article
 #  authors:
