@@ -1,5 +1,4 @@
 [![PyPI version](https://img.shields.io/pypi/v/promdens)](https://pypi.org/project/promdens/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue)](/LICENSE)
 [![CI](https://github.com/PHOTOX/promdens/actions/workflows/ci.yml/badge.svg)](https://github.com/PHOTOX/promdens/actions/workflows/ci.yml)
 
 # PROMDENS: Promoted Density Approach code
