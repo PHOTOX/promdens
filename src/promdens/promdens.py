@@ -669,7 +669,7 @@ def plot_field(ics: InitialConditions) -> None:
     axs[0].set_xlim(np.min(t_fs), np.max(t_fs))
     axs[0].set_ylim(np.min(-ics.field_envelope)*1.2, np.max(ics.field_envelope)*1.2)
     axs[0].set_xlabel("Time (fs)")
-    axs[0].set_ylabel(r"$\vec{E}$")
+    axs[0].set_ylabel(r"Electric field (arb. units)")
     axs[0].set_title("Laser pulse field")
     axs[0].legend(frameon=True, labelspacing=0.1, edgecolor='white', loc='upper left')
     axs[0].minorticks_on()
@@ -686,8 +686,8 @@ def plot_field(ics: InitialConditions) -> None:
     axs[1].fill_between(energy_ev, normalized_cross_section*0, normalized_cross_section, color=colors[1], alpha=0.2)
 
     # Plot pulse spectrum
-    axs[1].plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
-    axs[1].fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
+    axs[1].plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color=colors[0], label='Pulse spectral intensity')
+    axs[1].fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft**2, color=colors[0], alpha=0.2)
     axs[1].set_xlim(np.min(energy_ev), np.max(energy_ev))
     axs[1].set_ylim(0, 1.2)
     axs[1].set_xlabel(r"$E$ (eV)")
@@ -803,13 +803,14 @@ def plot_pdaw(ics: InitialConditions) -> None:
     if ics.nstates > 1:
         colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
     fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
-    fig.suptitle("Selected initial conditions and their weights")
+    fig.suptitle("Selected ICs and their PDAW weights")
     plt.get_current_fig_manager().set_window_title('PDAW weights')  # modify the window name from Figure x
 
     axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1],
         label='Absorption spectrum')
     axs.fill_between(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]*0, ics.spectrum[-1]/np.max(ics.spectrum[-1]),
         color=colors[-1], alpha=0.2)
+    axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color='black', alpha=0.5, label='Pulse spectral intensity')
 
     maxw = np.max(ics.weights)*1.1
     if ics.nstates > 1:
@@ -820,7 +821,7 @@ def plot_pdaw(ics: InitialConditions) -> None:
             axs.fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]),
                 color=colors[state], alpha=0.2)
             # weights of initial conditions plotted as sticks with points
-            axs.scatter(ics.de[state, :]/ics.evtoau, ics.weights[state, :]/maxw, color=colors[state], s=5)
+            axs.scatter(ics.de[state, :]/ics.evtoau, ics.weights[state, :]/maxw, color=colors[state], s=5, label=f'PDAW weights' if state == 0 else None, zorder=2)
             for index in range(ics.nsamples):
                 axs.plot([ics.de[state, index]/ics.evtoau]*2, [0, ics.weights[state, index]/maxw], color=colors[state])
     else:
@@ -830,17 +831,15 @@ def plot_pdaw(ics: InitialConditions) -> None:
         axs.fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[0 + 1]/np.max(ics.spectrum[-1]), color=colors[0],
             alpha=0.2)
         # weights of initial conditions plotted as sticks with points
-        axs.scatter(ics.de[0, :]/ics.evtoau, ics.weights[0, :]/maxw, color=colors[0], s=5)
+        axs.scatter(ics.de[0, :]/ics.evtoau, ics.weights[0, :]/maxw, color=colors[0], s=5, label='PDAW weights')
         for index in range(ics.nsamples):
             axs.plot([ics.de[0, index]/ics.evtoau]*2, [0, ics.weights[0, index]/maxw], color=colors[0])
 
-    axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft**2, color='black', alpha=0.5, label='Pulse intensity spectrum')
     axs.set_xlim(np.min(ics.spectrum[0]/ics.evtoau), np.max(ics.spectrum[0]/ics.evtoau))
     axs.set_ylim(0, 1.3)
     axs.set_xlabel(r"$E$ (eV)")
-    axs.set_ylabel(r"$\epsilon$")
-    axs.set_title("Pulse spectrum")
-    axs.legend(frameon=True, labelspacing=0.1, edgecolor='white', loc='upper left')
+    axs.set_ylabel(r"Normalized spectra and weights")
+    axs.legend(frameon=False, labelspacing=0, edgecolor='white', loc='upper left')
     axs.minorticks_on()
     axs.tick_params('both', direction='in', which='both', top=True, right=True)
 
