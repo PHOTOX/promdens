@@ -15,9 +15,9 @@ classifiers = [
 ]
 description = "Promoted Density Approach for sampling initial conditions for trajectory-based nonadiabatic photodynamics"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 dependencies = [
-    "numpy>=1.15",
+    "numpy>=2.0.0",
     "matplotlib~=3.0",
 ]
 

@@ -23,7 +23,7 @@ After installation, the code is available as a script via the `promdens` command
 promdens --help
 ```
 
-The minimum supported Python version is 3.7.
+The minimum supported Python version is 3.9.
 The code depends on `numpy` and `matplotlib` libraries that are automatically installed by pip.
 However, since pip by default installs packages into a global Python environment,
 it can break previously installed packages, e.g., by installing an incompatible version of numpy.
