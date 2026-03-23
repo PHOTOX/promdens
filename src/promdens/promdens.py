@@ -12,12 +12,18 @@
 # ]
 # ///
 
+from __future__ import annotations
+
 import argparse
 import dataclasses
+import typing as t
 from pathlib import Path
 from timeit import default_timer as timer
 
 import numpy as np
+
+if t.TYPE_CHECKING:
+    import matplotlib.pyplot as plt
 
 ENERGY_UNITS = ['a.u.', 'eV', 'nm', 'cm-1']
 TDM_UNITS = ['a.u.', 'debye']
@@ -27,6 +33,13 @@ NEG_PROB_HANDLING = ['error', 'ignore', 'abs']
 FILE_TYPES = ['file']
 
 DESC = "PROMDENS: Promoted Density Approach code"
+
+COLOR_MAP = 'viridis'
+
+def _get_cmap() -> plt.Colormap:
+    import matplotlib.pyplot as plt
+
+    return plt.colormaps.get_cmap(COLOR_MAP)
 
 
 ### functions and classes ###
@@ -161,8 +174,10 @@ class LaserPulse:
             trange = np.logical_and(t >= self.tmin, t <= self.tmax)
             field[trange] = np.sin(np.pi/2*(t[trange] - self.t0 + T)/T)**2
             return field
+        else:
+            raise ValueError(f'Invalid envelope type {self.envelope_type}')
 
-    def wigner_transform(self, tprime, de):
+    def wigner_transform(self, tprime: float, de: float) -> float:
         """
         Wigner transform of the pulse. The current implementation uses the pulse envelope formulation to simplify calculations.
         The integral is calculated numerically. Analytic formulas could be implemented here.
@@ -242,7 +257,7 @@ class InitialConditions:
     debtoau = 0.393456
     autocm = 8.478354e-30  # dipole moment conversion
 
-    def __init__(self, nsamples=0, nstates=1, input_type='file'):
+    def __init__(self, nsamples: int = 0, nstates: int = 1, input_type: str = "file"):
         """
         Initialization of the class.
         :param nsamples: number of inputed samples (position-momentum pairs), if set 0 then maximum number provided will be taken
@@ -253,7 +268,7 @@ class InitialConditions:
         self.nstates = nstates
         self.input_type = input_type
 
-    def read_input_data(self, fname: str, energy_unit: str, tdm_unit: str) -> None:
+    def read_input_data(self, fname: str | Path, energy_unit: str, tdm_unit: str) -> None:
         """
         Reading the input data: index of traj, excitation energies and magnitudes of transition dipole moments.
         :param fname: name of the input file
@@ -323,7 +338,7 @@ class InitialConditions:
         units (cm^2*molecule^-1). Conversion factor to molar absorption coefficient (dm^3*mol^-1*cm^-1) is 6.022140e20 / ln(10).
         """
 
-        def gauss(e, de, tdm, h):
+        def gauss(e: float, de: float, tdm: float, h: float) -> np.ndarray:
             """
             Gaussian function used in the spectrum calculation
             :param e: energy axis (a.u.)
@@ -389,7 +404,7 @@ class InitialConditions:
                   "not fulfilled. This means\n    that the representation of the pulse as envelope times cos(wt) is not physical."
                   " See the original reference for more details.")
 
-    def is_maxwell_fulfilled(self):
+    def is_maxwell_fulfilled(self) -> bool:
         """Check if the pulse fulfills Maxwell's equations
         (integral from -infinity to infinity of E(t) = E(w=0) 0)
         """
@@ -404,8 +419,8 @@ class InitialConditions:
         else:
             return True
 
-    def sample_initial_conditions(self, nsamples_ic: int, neg_handling: str, preselect: bool, seed=None,
-                                  output_fname='pda.dat'):
+    def sample_initial_conditions(self, nsamples_ic: int, neg_handling: str, preselect: bool, seed: int | None=None,
+                                  output_fname: str='pda.dat') -> None:
         """
         Sample time-dependent initial conditions using the Promoted Density Approach.
         :param nsamples_ic: number of initial conditions to be sampled
@@ -436,7 +451,7 @@ class InitialConditions:
             preselected = np.interp(x=self.de, xp=self.field_ft_omega,
                 fp=self.field_ft) < 1e-6  # considering field_ft is normalized and positive
             print(
-                f"  - Discarding {np.sum(preselected):d} samples that are not within the pulse spectrum [sigma(dE) < 10^-6].")
+               f"  - Discarding {np.sum(preselected):d} samples that are not within the pulse spectrum [sigma(dE) < 10^-6].")
         else:
             preselected = np.zeros(shape=(self.nstates, self.nsamples), dtype=bool)
 
@@ -451,7 +466,7 @@ class InitialConditions:
             rnd_state = rng.integers(low=0, high=self.nstates, dtype=int)
 
             # checking if the sample was preselected for discarding
-            if preselected[rnd_state, rnd_index]:
+            if preselected[rnd_state, rnd_index]:  # ty: ignore[not-subscriptable]
                 continue
 
             nattempts += 1
@@ -529,7 +544,7 @@ class InitialConditions:
         np.savetxt(output_fname, samples.T, fmt=['%8d', '%18.8f', '%12d', '%16.8f', '%16.8f'], header=header)
         print(f"  - Output saved to file '{output_fname}'")
 
-    def windowing(self, output_fname='pdaw.dat'):
+    def windowing(self, output_fname: str='pdaw.dat') -> None:
         """
         Performs Promoted Density Approach for Windowing (PDAW). The function calculates normalized weights and outputs
         the convolution functions I(t).
@@ -595,13 +610,15 @@ class InitialConditions:
 def plot_spectrum(ics: InitialConditions) -> None:
     import matplotlib.pyplot as plt
 
+    cmap = _get_cmap()
+
     print("  - Plotting UV/vis absorption spectrum")
-    colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
+    colors = list(cmap(np.linspace(0.35, 0.9, ics.nstates)))
     if ics.nstates > 1:
-        colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
+        colors.append(cmap(0.2))  # color for the total spectrum
     fig, axs = plt.subplots(1, 3, figsize=(12, 3.5))
     fig.suptitle("Characteristics of initial conditions (ICs) loaded")
-    plt.get_current_fig_manager().set_window_title('UV/vis absorption spectrum')  # modify the window name from Figure x
+    plt.get_current_fig_manager().set_window_title('UV/vis absorption spectrum')  # modify the window name from Figure x  # ty:ignore[unresolved-attribute]
 
     for state in range(ics.nstates):
         exc_energy_ev = ics.de[state]/ics.evtoau
@@ -655,11 +672,13 @@ def plot_spectrum(ics: InitialConditions) -> None:
 def plot_field(ics: InitialConditions) -> None:
     import matplotlib.pyplot as plt
 
+    cmap = _get_cmap()
+
     print("  - Plotting pulse characteristics")
-    colors = plt.cm.viridis([0.35, 0.6, 0.0])
+    colors = cmap([0.35, 0.6, 0.0])
     fig, axs = plt.subplots(1, 2, figsize=(8, 3.5))
     fig.suptitle("Pulse characteristics")
-    plt.get_current_fig_manager().set_window_title('Pulse characteristics')  # modify the window name from Figure x
+    plt.get_current_fig_manager().set_window_title('Pulse characteristics')  # modify the window name from Figure x  # ty:ignore[unresolved-attribute]
 
     t_fs = ics.field_t/ics.fstoau
     axs[0].plot(t_fs, ics.field, color=colors[0], linewidth=0.5, label='Field')
@@ -706,7 +725,7 @@ def plot_field(ics: InitialConditions) -> None:
         print("  - Plotting Maxwell eq. violation (pulse spectrum at 0 frequency)")
         fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
         fig.suptitle("Pulse spectrum nonzero at zero frequency!")
-        plt.get_current_fig_manager().set_window_title('Maxwell eq. violation')  # modify the window name from Figure x
+        plt.get_current_fig_manager().set_window_title('Maxwell eq. violation')  # modify the window name from Figure x  # ty:ignore[unresolved-attribute]
 
         axs.plot(ics.field_ft_omega/ics.evtoau, ics.field_ft, color=colors[0], label='Pulse spectrum')
         axs.fill_between(ics.field_ft_omega/ics.evtoau, ics.field_ft*0, ics.field_ft, color=colors[0], alpha=0.2)
@@ -733,19 +752,21 @@ def plot_field(ics: InitialConditions) -> None:
 def plot_pda(ics: InitialConditions) -> None:
     import matplotlib.pyplot as plt
 
+    cmap = _get_cmap()
+
     print("  - Plotting PDA initial conditions")
-    colors = plt.cm.viridis([0.35, 0.6])
+    colors = cmap([0.35, 0.6])
     fig = plt.figure(figsize=(6, 6))
     fig.suptitle("Excitations in time")
-    plt.get_current_fig_manager().set_window_title('PDA initial conditions')  # modify the window name from Figure x
+    plt.get_current_fig_manager().set_window_title('PDA initial conditions')  # modify the window name from Figure x  # ty:ignore[unresolved-attribute]
 
     # setting the other plots around the main plot
     left, width = 0.1, 0.65
     bottom, height = 0.1, 0.65
     spacing = 0.00
-    rect_scatter = [left, bottom, width, height]
-    rect_histx = [left, bottom + height + spacing, width, 0.2]
-    rect_histy = [left + width + spacing, bottom, 0.2, height]
+    rect_scatter = (left, bottom, width, height)
+    rect_histx = (left, bottom + height + spacing, width, 0.2)
+    rect_histy = (left + width + spacing, bottom, 0.2, height)
     axs = fig.add_axes(rect_scatter)
 
     t_fs = ics.field_t/ics.fstoau
@@ -754,7 +775,7 @@ def plot_pda(ics: InitialConditions) -> None:
     tmin, tmax = np.min(t_fs), np.max(t_fs)
 
     axs.hist2d(ics.ics[3]/ics.evtoau, ics.ics[1]/ics.fstoau, range=[[emin, emax], [tmin, tmax]], bins=(100, 100),
-        cmap=plt.cm.viridis, density=True, )
+        cmap=_get_cmap(), density=True, )
     if ics.pulse.lchirp != 0:
         axs.plot((ics.pulse.omega + 2*ics.pulse.lchirp*ics.field_t)/ics.evtoau, t_fs, color="white", linestyle="--",
             label=r"$\omega(t)$")
@@ -798,13 +819,14 @@ def plot_pda(ics: InitialConditions) -> None:
 def plot_pdaw(ics: InitialConditions) -> None:
     import matplotlib.pyplot as plt
 
+    cmap = _get_cmap()
     print("  - Plotting PDAW weights")
-    colors = list(plt.cm.viridis(np.linspace(0.35, 0.9, ics.nstates)))
+    colors = list(cmap(np.linspace(0.35, 0.9, ics.nstates)))
     if ics.nstates > 1:
-        colors.append(plt.cm.viridis(0.2))  # color for the total spectrum
+        colors.append(cmap(0.2))  # color for the total spectrum
     fig, axs = plt.subplots(1, 1, figsize=(4, 3.5))
     fig.suptitle("Selected ICs and their PDAW weights")
-    plt.get_current_fig_manager().set_window_title('PDAW weights')  # modify the window name from Figure x
+    plt.get_current_fig_manager().set_window_title('PDAW weights')  # modify the window name from Figure x  # ty:ignore[unresolved-attribute]
 
     axs.plot(ics.spectrum[0]/ics.evtoau, ics.spectrum[-1]/np.max(ics.spectrum[-1]), color=colors[-1],
         label='Absorption spectrum')
@@ -892,7 +914,7 @@ def parse_cmd_args():
     return parser.parse_args()
 
 
-def print_input_params(params):
+def print_input_params(params) -> None:
     print("* Input parameters:")
     for key, value in vars(params).items():
         add = ''

@@ -24,7 +24,7 @@ fwhm *= fstoau
 
 # plotting different envelopes of electric field and intensity, and their spectra
 print("\nEnvelope profiles and spectra calculated")
-colormap = plt.cm.viridis(np.linspace(0, 0.9, len(envelope_types)))
+colormap = plt.colormaps.get_cmap('viridis')(np.linspace(0, 0.9, len(envelope_types)))
 colors = dict(zip(envelope_types, colormap))
 fig, axs = plt.subplots(2, 2, figsize=(7, 7))
 
