@@ -5,9 +5,9 @@
 """
 
 # /// script
-# requires-python = ">=3.7"
+# requires-python = ">=3.9"
 # dependencies = [
-#     "numpy>=1.15",
+#     "numpy>=2.0.0",
 #     "matplotlib~=3.0",
 # ]
 # ///
@@ -334,13 +334,16 @@ class InitialConditions:
 
     def calc_spectrum(self):
         """
-        Calculating spectrum with the Nuclear Ensemble Approach. The calculated spectrum is in absorption cross-section
-        units (cm^2*molecule^-1). Conversion factor to molar absorption coefficient (dm^3*mol^-1*cm^-1) is 6.022140e20 / ln(10).
+        Calculating spectrum with the Nuclear Ensemble Approach.
+
+        The calculated spectrum is in absorption cross-section units (cm^2*molecule^-1).
+        Conversion factor to molar absorption coefficient (dm^3*mol^-1*cm^-1) is 6.022140e20 / ln(10).
         """
 
-        def gauss(e: float, de: float, tdm: float, h: float) -> np.ndarray:
+        def gauss(e: np.ndarray, de: float, tdm: float, h: float) -> np.ndarray:
             """
             Gaussian function used in the spectrum calculation
+
             :param e: energy axis (a.u.)
             :param de: excitation energy (centre of the Gaussian, a.u.)
             :param tdm: transition dipole moment (a.u.)
