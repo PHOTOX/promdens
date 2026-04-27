@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13619457.svg)](https://doi.org/10.5281/zenodo.13619457)
 [![PyPI version](https://img.shields.io/pypi/v/promdens)](https://pypi.org/project/promdens/)
 [![CI](https://github.com/PHOTOX/promdens/actions/workflows/ci.yml/badge.svg)](https://github.com/PHOTOX/promdens/actions/workflows/ci.yml)
 
@@ -275,13 +276,15 @@ URL = {https://doi.org/10.1021/acs.jpclett.4c02549}
 
 and the PROMDENS code:
 ```bibtex
-@software{PROMDENS2024,
-author = {Janoš, Jiří and Hollas, Daniel},
-month = nov,
-title = {{PROMDENS: Promoted Density Approach code}},
-url = {https://github.com/PHOTOX/promdens},
-version = {1.0.1},
-year = {2024}
+@software{Promdens,
+  author       = {Janoš, Jiří and Hollas, Daniel},
+  title        = {PROMDENS: Promoted Density Approach code},
+  month        = apr,
+  year         = 2026,
+  publisher    = {Zenodo},
+  version      = {v1.0.3},
+  doi          = {10.5281/zenodo.13619457},
+  url          = {https://doi.org/10.5281/zenodo.13619457},
 }
 ```
 

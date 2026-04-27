@@ -1,4 +1,4 @@
-cff-version: 1.1.0
+cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
   - family-names: Janoš
@@ -6,10 +6,15 @@ authors:
     orcid: https://orcid.org/0000-0001-5903-8538
   - family-names: Hollas
     given-names: Daniel
+    orcid: https://orcid.org/0000-0003-4075-6438
 title: "PROMDENS: Promoted Density Approach code"
-version: 1.0.2
+version: 1.0.3
+doi: 10.5281/zenodo.13619457
 url: "https://github.com/PHOTOX/promdens"
-date-released: 2025-11-28
+date-released: 2026-04-27
+type: software
+license: mit
+repository-code: https://github.com/PHOTOX/promdens
 # preferred-citation:
 #  type: article
 #  authors:
