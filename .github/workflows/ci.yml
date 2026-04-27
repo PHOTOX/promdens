@@ -41,6 +41,10 @@ jobs:
     - name: Install package
       run: uv pip install --system -e .[tests]
 
+    - name: Type check with ty
+      if: matrix.python != '3.9'
+      run: ty check
+
     - name: Run unit tests
       run: pytest -v
 

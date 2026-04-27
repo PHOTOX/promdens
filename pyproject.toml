@@ -34,6 +34,7 @@ promdens = "promdens:main"
 tests = [
     "inline-snapshot>=0.9,!=0.13.2",
     "pytest>=7.4",
+    "ty==0.0.31",
 ]
 
 [build-system]
@@ -42,9 +43,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
 exclude = ["supplementary"]
-
-[tool.pytest.ini_options]
-filterwarnings = [
-    # See https://github.com/PHOTOX/promdens/issues/9
-    "ignore:`trapz` is deprecated.*:DeprecationWarning:",
-]
