@@ -14,14 +14,14 @@ env:
 jobs:
   dist:
     name: Distribution build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: hynek/build-and-inspect-python-package@v2
+      - uses: hynek/build-and-inspect-python-package@v3.0.1
 
   test-publish:
     needs: [dist]
@@ -37,7 +37,7 @@ jobs:
     permissions:
       id-token: write
       pull-requests: write
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/download-artifact@v7
@@ -67,7 +67,7 @@ jobs:
       github.repository == 'PHOTOX/promdens' &&
       github.event_name == 'push' &&
       github.ref_type == 'tag'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     environment:
        name: pypi
        url: https://pypi.org/p/promdens/
