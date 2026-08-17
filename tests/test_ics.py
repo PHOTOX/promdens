@@ -1,8 +1,8 @@
-import numpy as np
 import pytest
 from inline_snapshot import snapshot
 
-from promdens import ENVELOPE_TYPES, InitialConditions, LaserPulse
+from promdens import ENVELOPE_TYPES, InitialConditions
+
 
 @pytest.mark.parametrize("envelope_type", ENVELOPE_TYPES)
 def test_calc_field(make_pulse, envelope_type):

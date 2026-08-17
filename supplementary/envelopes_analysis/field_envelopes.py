@@ -2,12 +2,11 @@
 Analysis of laser pulse envelopes available in promdens.py
 """
 
-import matplotlib.pyplot as plt
 import matplotlib.colors
-
+import matplotlib.pyplot as plt
 import numpy as np
 
-from promdens.promdens import LaserPulse, InitialConditions
+from promdens.promdens import InitialConditions, LaserPulse
 
 # input data
 fwhm = 10  # in fs

@@ -267,10 +267,7 @@ class InitialConditions:
         except FileNotFoundError as err:
             sys.exit(f"\nERROR: Input file '{fname}' not found!\n (Error: {err})")
         except ValueError as err:
-            print(err)
             sys.exit(f"\nERROR: Incorrect value type encountered in the input file '{fname}'!\n (Error: {err})")
-        except Exception as err:
-            sys.exit(f"\nERROR: Unexpected error: {err}, type: {type(err)}")
 
         if np.shape(input)[0] < self.nstates*2 + 1:  # check enough columns provided in the file for required nstates
             sys.exit(f"\nERROR: Not enough columns provided in the input file '{fname}'! "

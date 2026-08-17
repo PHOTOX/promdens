@@ -1,5 +1,7 @@
-"""This test aims to compare to previous PDA and PDAW results that were published and compared to exact QD.
-We use NaI as an example with two different laser pulses. If this test fails, the results produced by the code are unreliable!"""
+"""This is a regression test for PDA and PDAW results
+that were published and compared to exact QD.
+We use NaI as an example with two different laser pulses.
+"""
 
 from pathlib import Path
 
@@ -30,7 +32,7 @@ def test_pdaw_nai(tmp_path):
     reference = np.genfromtxt(path/'NaI_reference/test_pdaw_reference.dat').T[1]
     weights = ics.weights[0]
 
-    assert len(weights) == len(weights)
+    assert len(weights) == len(reference)
     # comparing all weights, the threshold 1e-15 was based on numerical differences created by switching between numpy 1.26 and 2.1
     for i in range(len(weights)):
         # the tolerance is the larger of the absolute and relative thresholds
