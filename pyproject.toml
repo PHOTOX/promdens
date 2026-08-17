@@ -32,9 +32,8 @@ promdens = "promdens:main"
 
 [project.optional-dependencies]
 tests = [
-    "inline-snapshot>=0.9,!=0.13.2",
-    "pytest>=8.3",
-    "ty==0.0.71",
+    "inline-snapshot~=0.35.4",
+    "pytest~=8.4",
 ]
 
 [build-system]

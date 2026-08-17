@@ -1,0 +1,41 @@
+# Configuration file for `prek`, a git hook framework written in Rust.
+# See https://prek.j178.dev for more information.
+#:schema https://www.schemastore.org/prek.json
+
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "no-commit-to-branch" },
+  { id = "check-yaml" },
+  { id = "check-added-large-files" },
+  { id = "check-merge-conflict" },
+  { id = "check-executables-have-shebangs" }
+]
+
+[[repos]]
+# ruff: A Python linter, https://astral.sh/ruff
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.16.3"
+hooks = [
+  {
+    id = "ruff-check",
+    args = ["--fix"],
+  },
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ty-pre-commit"
+rev = "v0.0.72"
+hooks = [
+  { id = "ty" , args = ["--isolated", "--all-extras"]},
+]
+
+# Verify Github workflows have correct syntax
+[[repos]]
+repo = "https://github.com/python-jsonschema/check-jsonschema"
+rev = "0.30.0"
+hooks = [
+  {
+    id = "check-github-workflows"
+  }
+]

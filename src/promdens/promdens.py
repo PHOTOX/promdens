@@ -409,11 +409,19 @@ class InitialConditions:
 
         print(f"* Sampling {nsamples_ic} initial conditions considering the laser pulse.")
 
-        def progress(percent, width, n, str=''):
+        def progress(current: int, width: int, n_total: int, title: str = ""):
             """Function to print progress of calculation."""
-            left = width*percent//n
+            left = width * current // n_total
             right = width - left
-            print(f'\r{str}[', '#'*left, ' '*right, '] %d'%(percent*100/n) + '%', sep='', end='', flush=True)
+            print(
+                f"\r{str}[",
+                "#" * left,
+                " " * right,
+                f"] {current * 100 / n_total} %",
+                sep="",
+                end="",
+                flush=True,
+            )
 
         # variable storing initial conditions
         samples = np.zeros((5, nsamples_ic))  # index, excitation time, initial excited state, de, tdm
@@ -629,7 +637,7 @@ def plot_spectrum(ics: InitialConditions) -> None:
     if ics.nstates > 1:
         for s in range(ics.nstates):
             state_cross_section = ics.spectrum[s + 1]
-            label = r"S$_\mathregular{%d}$"%(s + 1)
+            label = r"S$_\mathregular{%d}$" % (s + 1)  # noqa: UP031
             axs[2].plot(energy_ev, state_cross_section, color=colors[s], linestyle='--', label=label)
             axs[2].fill_between(energy_ev, 0, state_cross_section, color=colors[s], alpha=0.2)
 

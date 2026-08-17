@@ -12,6 +12,16 @@ env:
   FORCE_COLOR: 1
 
 jobs:
+  # Run ruff linter and ty type checker
+  lint-check:
+    runs-on: ubuntu-24.04
+    env:
+      SKIP: 'no-commit-to-branch'
+
+    steps:
+    - uses: actions/checkout@v7
+    - uses: j178/prek-action@v3.0.0
+
   test:
     strategy:
       fail-fast: false
