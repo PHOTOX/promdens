@@ -397,7 +397,7 @@ class InitialConditions:
         else:  # in case the first element is not zero frequency (which should not be at the current version of python)
             integral = self.field_ft[self.field_ft_omega == 0]
         # empirical threshold which considers the spectrum has maximum equal to 1
-        return not integral > 0.01
+        return integral <= 0.01
 
     def sample_initial_conditions(self, nsamples_ic: int, neg_handling: str, preselect: bool, seed: int | None=None,
                                   output_fname: str='pda.dat') -> None:
