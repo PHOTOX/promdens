@@ -409,7 +409,7 @@ class InitialConditions:
 
         print(f"* Sampling {nsamples_ic} initial conditions considering the laser pulse.")
 
-        def progress(current: int, width: int, n_total: int, title: str = ""):
+        def progress(current: int, n_total: int, width: int, title: str = ""):
             """Function to print progress of calculation."""
             left = width * current // n_total
             right = width - left
@@ -493,7 +493,7 @@ class InitialConditions:
                 samples[3, i] = self.de[rnd_state, rnd_index]
                 samples[4, i] = self.tdm[rnd_state, rnd_index]
                 i += 1
-                progress(i, 50, nsamples_ic, str='  - Sampling progress: ')
+                progress(i, nsamples_ic, width=50, title="  - Sampling progress: ")
 
         # saving samples within the object
         samples = samples[:, samples[0].argsort()]  # sorting according to sample index
