@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import sys
 import typing as t
 from pathlib import Path
 from timeit import default_timer as timer
@@ -264,20 +265,13 @@ class InitialConditions:
         try:
             input = np.loadtxt(fname, dtype=float).T  # reading input file with numpy
         except FileNotFoundError as err:
-            print(f"\nERROR: Input file '{fname}' not found!\n (Error: {err})")
-            exit(1)
+            sys.exit(f"\nERROR: Input file '{fname}' not found!\n (Error: {err})")
         except ValueError as err:
-            print(err)
-            print(f"\nERROR: Incorrect value type encountered in the input file '{fname}'!\n (Error: {err})")
-            exit(1)
-        except Exception as err:
-            print(f"\nERROR: Unexpected error: {err}, type: {type(err)}")
-            exit(1)
+            sys.exit(f"\nERROR: Incorrect value type encountered in the input file '{fname}'!\n (Error: {err})")
 
         if np.shape(input)[0] < self.nstates*2 + 1:  # check enough columns provided in the file for required nstates
-            print(f"\nERROR: Not enough columns provided in the input file '{fname}'! "
+            sys.exit(f"\nERROR: Not enough columns provided in the input file '{fname}'! "
                   f"\nExpected {self.nstates*2 + 1} columns for {self.nstates} excited states.")
-            exit(1)
 
         if self.nsamples == 0:  # use all samples loaded if user input nsamples is 0
             self.nsamples = np.shape(input)[1]
@@ -403,10 +397,7 @@ class InitialConditions:
         else:  # in case the first element is not zero frequency (which should not be at the current version of python)
             integral = self.field_ft[self.field_ft_omega == 0]
         # empirical threshold which considers the spectrum has maximum equal to 1
-        if integral > 0.01:
-            return False
-        else:
-            return True
+        return integral <= 0.01
 
     def sample_initial_conditions(self, nsamples_ic: int, neg_handling: str, preselect: bool, seed: int | None=None,
                                   output_fname: str='pda.dat') -> None:
@@ -455,7 +446,7 @@ class InitialConditions:
             rnd_state = rng.integers(low=0, high=self.nstates, dtype=int)
 
             # checking if the sample was preselected for discarding
-            if preselected[rnd_state, rnd_index]:  # ty: ignore[not-subscriptable]
+            if preselected[rnd_state, rnd_index]:
                 continue
 
             nattempts += 1
@@ -472,11 +463,10 @@ class InitialConditions:
             # check and handle negative probabilities
             if prob < -1e-12*rnd_max:  # check negative value bigger than integration precision
                 if neg_handling == 'error':
-                    print(
+                    sys.exit(
                         f"\nERROR: Negative probability ({prob/rnd_max*100:.1e}%) encountered! Check flag 'neg_handling' "
                         f"for more option how to handle negative probabilities. See also manual and ref XXX for more "
                         f"information.\n")
-                    exit(1)
                 elif neg_handling == 'ignore':
                     continue
                 elif neg_handling == 'abs':
@@ -559,7 +549,7 @@ class InitialConditions:
         self.weights = np.zeros((self.nstates, self.nsamples))  # sample index, weights in different states
 
         # generating weights for all states and samples
-        for state in range(0, self.nstates):
+        for state in range(self.nstates):
             self.weights[state] = self.tdm[state]**2*np.interp(self.de[state], self.field_ft_omega, self.field_ft)**2
 
         # normalization of all the weights
@@ -568,7 +558,7 @@ class InitialConditions:
 
         # analysis of the weights
         print("  - Analysis of the normalized weights for each state:")
-        for state in range(0, self.nstates):
+        for state in range(self.nstates):
             # sorting from the largest weight to smallest
             state_sum = np.sum(self.weights[state, :])
             sorted = np.sort(self.weights[state, :]/state_sum)[::-1]
@@ -832,7 +822,7 @@ def plot_pdaw(ics: InitialConditions) -> None:
             axs.fill_between(ics.spectrum[0]/ics.evtoau, 0, ics.spectrum[state + 1]/np.max(ics.spectrum[-1]),
                 color=colors[state], alpha=0.2)
             # weights of initial conditions plotted as sticks with points
-            axs.scatter(ics.de[state, :]/ics.evtoau, ics.weights[state, :]/maxw, color=colors[state], s=5, label=f'PDAW weights' if state == 0 else None, zorder=2)
+            axs.scatter(ics.de[state, :]/ics.evtoau, ics.weights[state, :]/maxw, color=colors[state], s=5, label='PDAW weights' if state == 0 else None, zorder=2)
             for index in range(ics.nsamples):
                 axs.plot([ics.de[state, index]/ics.evtoau]*2, [0, ics.weights[state, index]/maxw], color=colors[state])
     else:
@@ -921,8 +911,7 @@ def main():
     print_input_params(config)
 
     if not Path(config.input_file).is_file():
-        print(f"ERROR: file '{config.input_file}' not found!")
-        exit(1)
+        sys.exit(f"ERROR: file '{config.input_file}' not found!")
 
     # convert pulse input to atomic units
     fstoau = 41.341374575751

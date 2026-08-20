@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 from inline_snapshot import snapshot
 
-from promdens import ENVELOPE_TYPES, InitialConditions, LaserPulse
+from promdens import ENVELOPE_TYPES
+
 
 def test_invalid_envelope_type(make_pulse):
     with pytest.raises(ValueError):
